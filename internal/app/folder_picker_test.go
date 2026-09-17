@@ -48,3 +48,27 @@ func TestFolderPickerEntriesOnUnreadableDir(t *testing.T) {
 		t.Fatalf("entries = %v, want just [..]", got)
 	}
 }
+
+func TestFilterEntriesKeepsTheWayOut(t *testing.T) {
+	entries := []folderPickerEntry{
+		{label: ".."}, {label: "vault"}, {label: "scripts"}, {label: "APP"},
+	}
+
+	// Case-insensitive, and a substring is enough: the point is finding a folder
+	// you half remember, not matching a prefix exactly.
+	got := labels(filterEntries(entries, "ap"))
+	if !slices.Equal(got, []string{"..", "APP"}) {
+		t.Errorf("filter %q = %v, want [.. APP]", "ap", got)
+	}
+
+	// ".." survives a filter that matches nothing else — losing the way back out
+	// exactly when the search fails is the worst possible time for it.
+	got = labels(filterEntries(entries, "zzz"))
+	if !slices.Equal(got, []string{".."}) {
+		t.Errorf("filter %q = %v, want [..]", "zzz", got)
+	}
+
+	if got := labels(filterEntries(entries, "")); len(got) != 4 {
+		t.Errorf("empty filter = %v, want everything", got)
+	}
+}

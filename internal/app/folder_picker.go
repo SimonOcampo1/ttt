@@ -31,6 +31,10 @@ type folderPicker struct {
 	places *widgets.TreeWidget
 	list   *widgets.TreeWidget
 	dir    string
+	// filter is the half-typed last segment of the path. Keeping it separate from
+	// dir is what lets "~/repos/br" list ~/repos narrowed to what matches, rather
+	// than listing nothing because that path does not exist yet.
+	filter string
 }
 
 // folderPickerEntry is one row. dir is where selecting it takes you; places and
@@ -60,15 +64,26 @@ func (a *App) ShowFolderPicker(title, confirmLabel, initial string, onPick func(
 		OnChange:    func(text string) { fp.syncFromInput(text) },
 	})
 
+	// OnCommand("activate"), not OnSelect: OnSelect fires every time the selection
+	// moves, so arrowing down a list would walk into each directory it passed over
+	// and rebuild the listing under the cursor.
 	fp.places = widgets.NewListWidgetFromConfig(widgets.ListConfig{
 		EmptyText: "No places",
-		OnSelect:  func(node *widgets.TreeNode) { fp.enter(node.ID) },
+		OnCommand: func(command string, node *widgets.TreeNode) {
+			if command == "activate" {
+				fp.enter(node.ID)
+			}
+		},
 	})
 	fp.places.SetItems(placeNodes(workspace.Places()))
 
 	fp.list = widgets.NewListWidgetFromConfig(widgets.ListConfig{
 		EmptyText: "No subdirectories",
-		OnSelect:  func(node *widgets.TreeNode) { fp.enter(node.ID) },
+		OnCommand: func(command string, node *widgets.TreeNode) {
+			if command == "activate" {
+				fp.enter(node.ID)
+			}
+		},
 	})
 
 	if initial == "" {
@@ -113,27 +128,36 @@ func (fp *folderPicker) enter(dir string) {
 	fp.input.SetText(fp.dir)
 }
 
-// syncFromInput follows along as the path is typed. It only re-lists when the
-// text names a real directory, so a half-typed path leaves the listing where it
-// was instead of emptying out on every keystroke.
+// syncFromInput follows along as the path is typed: the listing tracks the
+// deepest directory the text names, narrowed to whatever is being typed after
+// it. Typing "~/repos/br" lists ~/repos showing only the matches, which is the
+// difference between a path box and something you can search.
 func (fp *folderPicker) syncFromInput(text string) {
 	path := expandFolderPath(strings.TrimSpace(text))
 	if path == "" {
 		return
 	}
+
+	dir, filter := path, ""
 	// A trailing separator means "inside this one"; otherwise the last segment is
-	// still being typed and the parent is the interesting listing.
+	// either a directory that exists or the prefix of one being typed.
 	if !strings.HasSuffix(path, string(os.PathSeparator)) {
 		if info, err := os.Stat(path); err != nil || !info.IsDir() {
-			path = filepath.Dir(path)
+			dir, filter = filepath.Dir(path), filepath.Base(path)
 		}
 	}
-	if info, err := os.Stat(path); err != nil || !info.IsDir() {
+	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 		return
 	}
-	if abs, err := filepath.Abs(path); err == nil && abs != fp.dir {
-		fp.setDir(abs)
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return
 	}
+	if abs == fp.dir && filter == fp.filter {
+		return
+	}
+	fp.dir, fp.filter = abs, filter
+	fp.refreshList()
 }
 
 func (fp *folderPicker) setDir(dir string) {
@@ -144,8 +168,29 @@ func (fp *folderPicker) setDir(dir string) {
 	if info, err := os.Stat(abs); err != nil || !info.IsDir() {
 		return
 	}
-	fp.dir = abs
-	fp.list.SetItems(folderPickerNodes(folderPickerEntries(abs)))
+	fp.dir, fp.filter = abs, ""
+	fp.refreshList()
+}
+
+func (fp *folderPicker) refreshList() {
+	fp.list.SetItems(folderPickerNodes(filterEntries(folderPickerEntries(fp.dir), fp.filter)))
+}
+
+// filterEntries narrows a listing to what is being typed. ".." survives every
+// filter: the way back out should not disappear because the search matched
+// nothing, which is when you most want it.
+func filterEntries(entries []folderPickerEntry, filter string) []folderPickerEntry {
+	if filter == "" {
+		return entries
+	}
+	needle := strings.ToLower(filter)
+	var out []folderPickerEntry
+	for _, e := range entries {
+		if e.label == ".." || strings.Contains(strings.ToLower(e.label), needle) {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // folderPickerEntries builds the rows for dir: the way up, then what is inside.
