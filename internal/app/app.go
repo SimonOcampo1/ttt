@@ -330,10 +330,22 @@ func (a *App) CloseTerminal(panelID string) {
 	a.TerminalPanel.RemoveTerminal(idx)
 
 	if a.TerminalPanel.Count() == 0 {
-		a.FocusEditor()
+		a.hideBottomPanelIfTerminalActive()
 	} else {
 		a.Root.SetFocus(a.TerminalPanel)
 	}
+}
+
+// hideBottomPanelIfTerminalActive collapses the bottom panel once the last
+// terminal is gone, so `exit` in the shell closes the panel instead of leaving
+// a dead one on screen. The panel also hosts Problems, References and Output,
+// so it only collapses when the terminal is the tab actually being shown.
+func (a *App) hideBottomPanelIfTerminalActive() {
+	if a.BottomPanel != nil && a.BottomPanel.ActivePanel != "terminal" {
+		a.FocusEditor()
+		return
+	}
+	a.HideBottomPanel()
 }
 
 func (a *App) CloseAllTerminals() {
@@ -345,7 +357,7 @@ func (a *App) CloseAllTerminals() {
 	for _, tt := range terms {
 		tt.Term.Close()
 	}
-	a.FocusEditor()
+	a.hideBottomPanelIfTerminalActive()
 }
 
 func (a *App) refreshWorkspaceWidgets() {

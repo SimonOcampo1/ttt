@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -277,3 +278,42 @@ func TestPrimaryDeviceAttributesResponse(t *testing.T) {
 	}
 }
 
+// go-pty keeps its own copy of the slave fd open in this process, so the master
+// never reports EOF when the child dies. Detecting exit therefore has to come
+// from waiting on the process, not from the read loop erroring out.
+func TestOnExitFiresWhenShellExits(t *testing.T) {
+	term := newTestTerminal(t)
+	exited := make(chan struct{})
+	var once sync.Once
+	term.OnExit = func() { once.Do(func() { close(exited) }) }
+	term.Run()
+	defer term.Close()
+
+	term.WriteString("exit\n")
+
+	select {
+	case <-exited:
+	case <-time.After(5 * time.Second):
+		t.Fatal("OnExit never fired after the shell exited")
+	}
+	term.mu.Lock()
+	exitedFlag := term.exited
+	term.mu.Unlock()
+	if !exitedFlag {
+		t.Fatal("exited = false after the shell exited")
+	}
+}
+
+// Close() tears the tab down on its own; OnExit firing there too would close it twice.
+func TestOnExitDoesNotFireOnClose(t *testing.T) {
+	term := newTestTerminal(t)
+	var fired atomic.Bool
+	term.OnExit = func() { fired.Store(true) }
+	term.Run()
+
+	term.Close()
+
+	if fired.Load() {
+		t.Fatal("OnExit fired on an explicit Close()")
+	}
+}
