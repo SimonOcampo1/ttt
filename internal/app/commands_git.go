@@ -41,7 +41,7 @@ func (a *App) DiscardSelected() {
 }
 
 func (a *App) OpenFolder() {
-	a.ShowInputDialogEx("Open Folder", "Folder path", "", "Open", func(path string) {
+	a.ShowFolderPicker("Open Folder", "Open", "", func(path string) {
 		abs, err := filepath.Abs(workspace.ExpandPath(path))
 		if err != nil {
 			a.StatusError("Error: " + err.Error())
@@ -60,7 +60,7 @@ func (a *App) OpenFolder() {
 }
 
 func (a *App) AddWorkspaceFolder() {
-	a.ShowInputDialog("Add Folder", "Folder path", "", func(path string) {
+	a.ShowFolderPicker("Add Folder", "Add", "", func(path string) {
 		if path == "" {
 			return
 		}
