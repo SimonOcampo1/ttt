@@ -27,6 +27,7 @@ type Terminal struct {
 	cmd        *pty.Cmd
 	cols, rows int
 	done       chan struct{}
+	waited     chan struct{}
 	started    bool
 	closed     bool
 	exited     bool
@@ -44,9 +45,10 @@ func New(shell string, cols, rows, scrollbackMax int, env []string, dir string) 
 	}
 
 	t := &Terminal{
-		cols: cols,
-		rows: rows,
-		done: make(chan struct{}),
+		cols:   cols,
+		rows:   rows,
+		done:   make(chan struct{}),
+		waited: make(chan struct{}),
 	}
 
 	pt, err := pty.New()
@@ -103,7 +105,34 @@ func (t *Terminal) Run() {
 	t.mu.Lock()
 	t.started = true
 	t.mu.Unlock()
+	go t.waitLoop()
 	go t.readLoop()
+}
+
+// waitLoop reaps the child and is what makes shell exit observable.
+//
+// Reading the master until it errors does not work here: go-pty assigns the
+// slave to the child's stdio and keeps its own copy of that fd open in this
+// process, so the master never reports EOF when the child dies and readLoop
+// blocks forever. Waiting on the process is the only reliable signal, and
+// closing the pty afterwards is what releases readLoop.
+func (t *Terminal) waitLoop() {
+	defer close(t.waited)
+	if t.cmd == nil {
+		return
+	}
+	t.cmd.Wait()
+
+	t.mu.Lock()
+	t.exited = true
+	closing := t.closed
+	t.pt.Close()
+	t.mu.Unlock()
+
+	// Close() already tears the tab down; firing OnExit there would close it twice.
+	if !closing && t.OnExit != nil {
+		t.OnExit()
+	}
 }
 
 func (t *Terminal) readLoop() {
@@ -124,9 +153,6 @@ func (t *Terminal) readLoop() {
 			t.mu.Lock()
 			t.exited = true
 			t.mu.Unlock()
-			if t.OnExit != nil {
-				t.OnExit()
-			}
 			return
 		}
 	}
@@ -174,12 +200,14 @@ func (t *Terminal) Close() {
 	started := t.started
 	t.mu.Unlock()
 
+	t.mu.Lock()
 	t.pt.Close()
-	if t.cmd.Process != nil {
+	t.mu.Unlock()
+	if t.cmd != nil && t.cmd.Process != nil {
 		t.cmd.Process.Kill()
-		t.cmd.Wait()
 	}
 	if started {
+		<-t.waited
 		<-t.done
 	}
 }
