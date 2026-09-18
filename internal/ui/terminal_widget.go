@@ -57,8 +57,15 @@ type TerminalWidget struct {
 	scrollbar    Scrollbar
 	selecting    bool
 	hasSelection bool
-	selAnchor    termSelPos
-	selCurrent   termSelPos
+	// Cursor state captured during Render, from the same emulator snapshot the
+	// cells come from. Reading it separately afterwards would pair this frame's
+	// content with a later cursor, which is what made TUIs running inside the
+	// terminal (Claude Code, for one) draw their cursor away from the box they
+	// had just painted, until an unrelated event forced another frame.
+	curX, curY int
+	curVisible bool
+	selAnchor  termSelPos
+	selCurrent termSelPos
 
 	OnOpenURL  func(url string)
 	OnOpenFile func(path string, line, col int)
@@ -120,12 +127,11 @@ func (tw *TerminalWidget) CursorPosition() (x, y int, visible bool) {
 	if tw.Term == nil {
 		return 0, 0, false
 	}
-	if tw.scrollOffset > 0 || tw.hasSelection {
+	if tw.scrollOffset > 0 || tw.hasSelection || !tw.curVisible {
 		return 0, 0, false
 	}
 	r := tw.GetRect()
-	cx, cy := tw.Term.CursorPos()
-	return r.X + cx, r.Y + cy, tw.focused
+	return r.X + tw.curX, r.Y + tw.curY, tw.focused
 }
 
 func byteToRunePos(s string, byteIdx int) int {
@@ -315,6 +321,10 @@ func (tw *TerminalWidget) Render(surface Surface) {
 		cols, rows := view.Size()
 		sbLen := view.ScrollbackLen()
 		totalLines := sbLen + rows
+
+		c := view.Cursor()
+		tw.curX, tw.curY = c.X, c.Y
+		tw.curVisible = view.CursorVisible()
 
 		if tw.scrollOffset > sbLen {
 			tw.scrollOffset = sbLen
