@@ -53,6 +53,8 @@ All editor settings are nested under the `editor` key.
 | `editor.menuBar` | bool | `true` | Show the menu bar row at the top of the window |
 | `editor.gutterStyle` | string | `"compact"` | Gutter layout: `"minimal"`, `"compact"`, or `"extended"` |
 | `editor.borderStyle` | string | `"default"` | Border style preset: `"default"`, `"rounded"`, `"sharp"`, `"double"`, `"bold"`, `"ascii"`, `"none"`. Use `"default"` or `"theme"` to defer to the active theme. |
+| `editor.foldChevronCollapsed` | string | `▶` | Gutter glyph on a collapsed foldable line. Must be a single-width character, for example a Nerd Font chevron such as `\ueab6`; anything else falls back to the default. |
+| `editor.foldChevronExpanded` | string | `▼` | Gutter glyph on an expanded foldable line, shown while hovering the gutter. Same rules as above. |
 | `editor.bracketPairColorization` | bool | `false` | Colorize matching bracket pairs by nesting depth |
 
 ## Explorer
@@ -68,6 +70,8 @@ All editor settings are nested under the `editor` key.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `sidebar.panelOrder` | string[] | built-in order | Preferred sidebar panel-header order. Dragging a header or using **Move Panel Left/Right** updates it automatically. Unknown plugin panel IDs are retained until that plugin loads. |
+| `sidebar.treeChevronCollapsed` | string | `▶` | Glyph drawn beside a collapsed folder or group in sidebar trees. Must be a single-width character, for example a Nerd Font chevron such as `\ueab6`; anything else falls back to the default. |
+| `sidebar.treeChevronExpanded` | string | `▼` | Glyph drawn beside an expanded folder or group. Same rules as above. |
 
 ## Git
 
@@ -175,6 +179,8 @@ When `editor.formatOnSave` is `true`, external formatters take priority over LSP
     "menuBar": true,
     "gutterStyle": "compact",
     "borderStyle": "default",
+    "foldChevronCollapsed": "▶",
+    "foldChevronExpanded": "▼",
     "bracketPairColorization": false
   },
   "search": {
@@ -186,7 +192,9 @@ When `editor.formatOnSave` is `true`, external formatters take priority over LSP
     "icons": "none"
   },
   "sidebar": {
-    "panelOrder": ["explorer", "search", "changes", "outline"]
+    "panelOrder": ["explorer", "search", "changes", "outline"],
+    "treeChevronCollapsed": "▶",
+    "treeChevronExpanded": "▼"
   },
   "git": {
     "fileView": "list",

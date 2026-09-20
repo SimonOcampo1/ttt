@@ -173,3 +173,44 @@ func TestIconsDefaultToNoneWhenUnset(t *testing.T) {
 		t.Fatalf("icons with no icons key = explorer %q, git %q, want none", got.Explorer.Icons, got.Git.Icons)
 	}
 }
+
+func TestSidebarChevronsDefaultAndValidate(t *testing.T) {
+	d := DefaultSettings()
+	if d.Sidebar.TreeChevronCollapsed != "▶" || d.Sidebar.TreeChevronExpanded != "▼" {
+		t.Fatalf("defaults = %q/%q", d.Sidebar.TreeChevronCollapsed, d.Sidebar.TreeChevronExpanded)
+	}
+
+	for name, value := range map[string]string{"empty": "", "two runes": "ab", "wide": "日", "grapheme": "é"} {
+		s := DefaultSettings()
+		s.Sidebar.TreeChevronCollapsed = value
+		normalizeSettings(&s)
+		if s.Sidebar.TreeChevronCollapsed != "▶" {
+			t.Errorf("%s: collapsed = %q, want the default", name, s.Sidebar.TreeChevronCollapsed)
+		}
+	}
+
+	s := DefaultSettings()
+	s.Sidebar.TreeChevronCollapsed = ""
+	s.Sidebar.TreeChevronExpanded = ">"
+	normalizeSettings(&s)
+	collapsed, expanded := s.Sidebar.Chevrons()
+	if collapsed != '' || expanded != '>' {
+		t.Errorf("chevrons = %q/%q, want the configured glyphs", collapsed, expanded)
+	}
+}
+
+func TestFoldChevronsDefaultAndValidate(t *testing.T) {
+	d := DefaultSettings()
+	if d.Editor.FoldChevronCollapsed != "▶" || d.Editor.FoldChevronExpanded != "▼" {
+		t.Fatalf("defaults = %q/%q", d.Editor.FoldChevronCollapsed, d.Editor.FoldChevronExpanded)
+	}
+
+	s := DefaultSettings()
+	s.Editor.FoldChevronCollapsed = "ab"
+	s.Editor.FoldChevronExpanded = "\ueab4"
+	normalizeSettings(&s)
+	collapsed, expanded := s.Editor.FoldChevrons()
+	if collapsed != '▶' || expanded != '\ueab4' {
+		t.Errorf("chevrons = %q/%q, want the default and the configured glyph", collapsed, expanded)
+	}
+}

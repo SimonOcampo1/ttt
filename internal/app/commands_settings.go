@@ -5,6 +5,7 @@ import (
 	"github.com/eugenioenko/ttt/internal/config"
 	"github.com/eugenioenko/ttt/internal/term"
 	"github.com/eugenioenko/ttt/internal/ui"
+	"github.com/eugenioenko/ttt/internal/widgets"
 )
 
 func configuredDiffMode(mode string) ui.DiffMode {
@@ -25,6 +26,36 @@ func (a *App) ReloadSettings() {
 	s := config.LoadSettings()
 	a.ApplySettings(s)
 	a.StatusNotify("Settings reloaded")
+}
+
+func (a *App) applySidebarChevrons(sb config.SidebarSettings) {
+	collapsed, expanded := sb.Chevrons()
+	var trees []*widgets.TreeWidget
+	if a.Explorer != nil {
+		trees = append(trees, a.Explorer.Tree)
+	}
+	if a.Changes != nil {
+		trees = append(trees, a.Changes.Tree, a.Changes.CommitLog)
+	}
+	if a.Symbols != nil {
+		trees = append(trees, a.Symbols.Tree)
+	}
+	for _, tree := range trees {
+		if tree != nil {
+			tree.Config.ChevronCollapsed = collapsed
+			tree.Config.ChevronExpanded = expanded
+		}
+	}
+	if a.Search != nil {
+		a.Search.ChevronCollapsed = collapsed
+		a.Search.ChevronExpanded = expanded
+	}
+}
+
+func (a *App) applyFoldChevrons(s config.EditorSettings) {
+	if a.EditorGroup != nil && a.EditorGroup.Editor != nil {
+		a.EditorGroup.Editor.FoldChevronCollapsed, a.EditorGroup.Editor.FoldChevronExpanded = s.FoldChevrons()
+	}
 }
 
 // ApplySettings is the single live-apply path: anything that can take effect
@@ -89,6 +120,9 @@ func (a *App) ApplySettings(s config.Settings) {
 			a.EditorGroup.Editor.LineChanges = nil
 		}
 	}
+
+	a.applySidebarChevrons(s.Sidebar)
+	a.applyFoldChevrons(s.Editor)
 
 	if a.Explorer != nil && a.Explorer.Settings != s.Explorer {
 		a.Explorer.Settings = s.Explorer

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"slices"
+
+	"github.com/eugenioenko/ttt/internal/textwidth"
 )
 
 // Validated by normalizeSettings and used to populate the settings UI pickers.
@@ -109,6 +111,8 @@ type EditorSettings struct {
 	AutoIndent              *bool  `json:"autoIndent,omitempty"`
 	GutterStyle             string `json:"gutterStyle,omitempty"`
 	BorderStyle             string `json:"borderStyle,omitempty"`
+	FoldChevronCollapsed    string `json:"foldChevronCollapsed"`
+	FoldChevronExpanded     string `json:"foldChevronExpanded"`
 	BracketPairColorization bool   `json:"bracketPairColorization"`
 	ShowTrailingNewline     *bool  `json:"showTrailingNewline,omitempty"`
 	MenuBar                 *bool  `json:"menuBar,omitempty"`
@@ -142,6 +146,8 @@ func (e EditorSettings) IsAutoIndentEnabled() bool {
 
 func DefaultEditorSettings() EditorSettings {
 	return EditorSettings{
+		FoldChevronCollapsed:    DefaultFoldChevronCollapsed,
+		FoldChevronExpanded:     DefaultFoldChevronExpanded,
 		TabSize:                 4,
 		InsertSpaces:            true,
 		DiffMode:                DiffModeSplit,
@@ -170,10 +176,51 @@ type ExplorerSettings struct {
 	Icons          string `json:"icons"`
 }
 
+const (
+	DefaultFoldChevronCollapsed = "▶"
+	DefaultFoldChevronExpanded  = "▼"
+)
+
+const (
+	DefaultTreeChevronCollapsed = "▶"
+	DefaultTreeChevronExpanded  = "▼"
+)
+
 type SidebarSettings struct {
-	PanelOrder          []string `json:"panelOrder,omitempty"`
-	Width               int      `json:"width,omitempty"`
-	CommitHistoryHeight int      `json:"commitHistoryHeight,omitempty"`
+	PanelOrder           []string `json:"panelOrder,omitempty"`
+	Width                int      `json:"width,omitempty"`
+	CommitHistoryHeight  int      `json:"commitHistoryHeight,omitempty"`
+	TreeChevronCollapsed string   `json:"treeChevronCollapsed"`
+	TreeChevronExpanded  string   `json:"treeChevronExpanded"`
+}
+
+func DefaultSidebarSettings() SidebarSettings {
+	return SidebarSettings{
+		TreeChevronCollapsed: DefaultTreeChevronCollapsed,
+		TreeChevronExpanded:  DefaultTreeChevronExpanded,
+	}
+}
+
+// Chevrons falls back to the defaults for any value that is not exactly one
+// single-width rune, since the tree draws the chevron in one cell and reserves
+// exactly two columns for it.
+func (s SidebarSettings) Chevrons() (collapsed, expanded rune) {
+	return chevronRune(s.TreeChevronCollapsed, DefaultTreeChevronCollapsed),
+		chevronRune(s.TreeChevronExpanded, DefaultTreeChevronExpanded)
+}
+
+// FoldChevrons applies the same one-single-width-rune rule as the sidebar
+// chevrons, since the gutter draws the glyph in a single cell.
+func (s EditorSettings) FoldChevrons() (collapsed, expanded rune) {
+	return chevronRune(s.FoldChevronCollapsed, DefaultFoldChevronCollapsed),
+		chevronRune(s.FoldChevronExpanded, DefaultFoldChevronExpanded)
+}
+
+func chevronRune(value, fallback string) rune {
+	if r := []rune(value); len(r) == 1 && textwidth.Rune(r[0]) == 1 {
+		return r[0]
+	}
+	return []rune(fallback)[0]
 }
 
 type GitSettings struct {
@@ -313,6 +360,7 @@ func DefaultSettings() Settings {
 		Editor:       DefaultEditorSettings(),
 		Search:       DefaultSearchSettings(),
 		Explorer:     DefaultExplorerSettings(),
+		Sidebar:      DefaultSidebarSettings(),
 		Git:          DefaultGitSettings(),
 		Terminal:     DefaultTerminalSettings(),
 		LSP:          DefaultLSPSettings(),
@@ -352,6 +400,12 @@ func normalizeSettings(s *Settings) {
 	if s.Sidebar.CommitHistoryHeight < 0 {
 		s.Sidebar.CommitHistoryHeight = 0
 	}
+	collapsed, expanded := s.Sidebar.Chevrons()
+	s.Sidebar.TreeChevronCollapsed = string(collapsed)
+	s.Sidebar.TreeChevronExpanded = string(expanded)
+	collapsed, expanded = s.Editor.FoldChevrons()
+	s.Editor.FoldChevronCollapsed = string(collapsed)
+	s.Editor.FoldChevronExpanded = string(expanded)
 	if !slices.Contains(DiffModes, s.Editor.DiffMode) {
 		s.Editor.DiffMode = DiffModeSplit
 	}
