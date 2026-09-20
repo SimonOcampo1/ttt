@@ -156,15 +156,11 @@ func RunEventLoop(
 	}
 
 	redraw := func() {
-		cells := make([][]term.Cell, app.Root.Height)
-		for y := range cells {
-			cells[y] = make([]term.Cell, app.Root.Width)
-		}
+		cells := renderer.NextFrame(app.Root.Width, app.Root.Height)
 		if app.ImageLayer != nil {
 			app.ImageLayer.Begin()
 		}
 		app.Root.Render(cells)
-		renderer.SetCurrent(cells)
 		if cx, cy, visible := app.Root.CursorPosition(); visible {
 			screen.ShowCursor(cx, cy)
 		} else {
