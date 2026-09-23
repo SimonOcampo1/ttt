@@ -18,8 +18,10 @@ type TreeNode struct {
 	Children       []*TreeNode `json:"children,omitempty"`
 	Actions        []Action    `json:"actions,omitempty"`
 	Muted          bool        `json:"-"`
-	Expandable     bool        `json:"-"`
-	TruncateLeft   bool        `json:"-"`
+	// LabelStyle overrides the label color; Muted and selection take precedence.
+	LabelStyle   term.Style `json:"-"`
+	Expandable   bool       `json:"-"`
+	TruncateLeft bool       `json:"-"`
 
 	Expanded bool `json:"-"`
 	depth    int
@@ -464,8 +466,15 @@ func (t *TreeWidget) renderNode(surface Surface, node *TreeNode, idx, y, w int) 
 	}
 
 	labelStyle := style
-	if node.Muted && idx != t.selected {
-		labelStyle = term.StyleMuted
+	// Keyed off the highlight actually drawn, not the selected index: an
+	// unfocused selection draws none, and should keep its own label color.
+	if style != term.StyleSidebarSelected {
+		switch {
+		case node.Muted:
+			labelStyle = term.StyleMuted
+		case node.LabelStyle != term.StyleDefault:
+			labelStyle = node.LabelStyle
+		}
 	}
 	labelRunes := []rune(node.Label)
 	if t.Config.TruncateLeft || node.TruncateLeft {

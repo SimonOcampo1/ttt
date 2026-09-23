@@ -184,6 +184,7 @@ func TestResolveColors(t *testing.T) {
 	th.Success.Fg = ""
 	th.Danger.Fg = ""
 	th.Warning.Fg = ""
+	th.Conflict.Fg = ""
 	th.Input.Item.Bg = ""
 	th.Input.Item.Fg = ""
 	th.Input.Placeholder.Fg = ""
@@ -211,6 +212,9 @@ func TestResolveColors(t *testing.T) {
 	if th.Warning.Fg == "" {
 		t.Error("expected Warning.Fg to be filled by ResolveColors")
 	}
+	if th.Conflict.Fg == "" {
+		t.Error("expected Conflict.Fg to be filled by ResolveColors")
+	}
 	if th.Input.Item.Bg == "" {
 		t.Error("expected Input.Item.Bg to be filled by ResolveColors")
 	}
@@ -225,10 +229,49 @@ func TestResolveColors(t *testing.T) {
 	}
 }
 
+func TestResolveColorsDerivesStagedVariants(t *testing.T) {
+	th := DefaultTheme()
+	th.ResolveColors()
+
+	cases := []struct {
+		name   string
+		live   StyleDef
+		staged StyleDef
+	}{
+		{"Success", th.Success, th.SuccessStaged},
+		{"Danger", th.Danger, th.DangerStaged},
+		{"Warning", th.Warning, th.WarningStaged},
+		{"Conflict", th.Conflict, th.ConflictStaged},
+	}
+	for _, c := range cases {
+		if c.staged.Fg == "" {
+			t.Errorf("%s: expected staged Fg to be derived, got empty", c.name)
+		}
+		if c.staged.Fg == c.live.Fg {
+			t.Errorf("%s: expected staged Fg to differ from the live color, both are %q", c.name, c.live.Fg)
+		}
+		liveLum := testColorLuminance(c.live.Fg)
+		stagedLum := testColorLuminance(c.staged.Fg)
+		bgLum := testColorLuminance(th.Default.Bg)
+		// The staged variant should sit strictly between the live color and the
+		// background on the luminance scale, i.e. actually faded toward it.
+		if bgLum > liveLum {
+			if !(stagedLum > liveLum && stagedLum < bgLum) {
+				t.Errorf("%s: staged luminance %v should be between live %v and background %v", c.name, stagedLum, liveLum, bgLum)
+			}
+		} else {
+			if !(stagedLum < liveLum && stagedLum > bgLum) {
+				t.Errorf("%s: staged luminance %v should be between live %v and background %v", c.name, stagedLum, liveLum, bgLum)
+			}
+		}
+	}
+}
+
 func TestResolveColorsPreservesExisting(t *testing.T) {
 	th := DefaultTheme()
 	th.Success.Fg = "#custom"
 	th.Danger.Fg = "#custom2"
+	th.Conflict.Fg = "#custom6"
 	th.Diff.Added.Bg = "#custom3"
 	th.Diff.CollapsedHover = StyleDef{Fg: "#custom4", Bg: "#custom5", Bold: true}
 
@@ -239,6 +282,9 @@ func TestResolveColorsPreservesExisting(t *testing.T) {
 	}
 	if th.Danger.Fg != "#custom2" {
 		t.Errorf("expected Danger.Fg to remain '#custom2', got %q", th.Danger.Fg)
+	}
+	if th.Conflict.Fg != "#custom6" {
+		t.Errorf("expected Conflict.Fg to remain '#custom6', got %q", th.Conflict.Fg)
 	}
 	if th.Diff.Added.Bg != "#custom3" {
 		t.Errorf("expected Diff.Added.Bg to remain '#custom3', got %q", th.Diff.Added.Bg)

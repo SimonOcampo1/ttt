@@ -296,6 +296,75 @@ func TestTreeRenderEmptyNoEmptyText(t *testing.T) {
 	}
 }
 
+func TestTreeRenderLabelStyle(t *testing.T) {
+	tree := NewTreeWidget(TreeConfig{
+		Items: []*TreeNode{
+			{ID: "a", Label: "plain.go"},
+			{ID: "b", Label: "changed.go", LabelStyle: term.StyleWarning},
+		},
+	})
+	tree.SetFocused(true)
+	s := renderWidget(tree, 0, 0, 20, 10)
+
+	// "a" is selected by default and unaffected by LabelStyle.
+	if s.cells[0][0].Style != term.StyleSidebarSelected {
+		t.Errorf("selected row should use StyleSidebarSelected, got %v", s.cells[0][0].Style)
+	}
+	// "b" is unselected, so its LabelStyle should color the row.
+	if s.cells[1][0].Style != term.StyleWarning {
+		t.Errorf("unselected node with LabelStyle should use it, got %v", s.cells[1][0].Style)
+	}
+
+	tree.SelectByID("b")
+	s = renderWidget(tree, 0, 0, 20, 10)
+	if s.cells[1][0].Style != term.StyleSidebarSelected {
+		t.Errorf("selected row keeps selection highlight over LabelStyle, got %v", s.cells[1][0].Style)
+	}
+}
+
+func TestTreeRenderLabelStyleSurvivesUnfocusedSelection(t *testing.T) {
+	tree := NewTreeWidget(TreeConfig{
+		Items: []*TreeNode{
+			{ID: "a", Label: "changed.go", LabelStyle: term.StyleWarning},
+		},
+	})
+	// "a" is selected, but an unfocused tree draws no selection highlight, so
+	// there is nothing for the selection to take precedence over.
+	tree.SetFocused(false)
+	s := renderWidget(tree, 0, 0, 20, 10)
+	if s.cells[0][0].Style != term.StyleWarning {
+		t.Errorf("unhighlighted selected row should keep its LabelStyle, got %v", s.cells[0][0].Style)
+	}
+}
+
+func TestTreeRenderActiveIDHighlightOverridesLabelStyle(t *testing.T) {
+	tree := NewTreeWidget(TreeConfig{
+		Items: []*TreeNode{
+			{ID: "a", Label: "plain.go"},
+			{ID: "b", Label: "changed.go", LabelStyle: term.StyleWarning},
+		},
+	})
+	tree.SetActiveID("b")
+	s := renderWidget(tree, 0, 0, 20, 10)
+	if s.cells[1][0].Style != term.StyleSidebarSelected {
+		t.Errorf("active row highlight should win over LabelStyle, got %v", s.cells[1][0].Style)
+	}
+}
+
+func TestTreeRenderMutedOverridesLabelStyle(t *testing.T) {
+	tree := NewTreeWidget(TreeConfig{
+		Items: []*TreeNode{
+			{ID: "root", Label: "root.go"},
+			{ID: "a", Label: "ignored.go", LabelStyle: term.StyleWarning, Muted: true},
+		},
+	})
+	tree.SetFocused(false)
+	s := renderWidget(tree, 0, 0, 20, 10)
+	if s.cells[1][0].Style != term.StyleMuted {
+		t.Errorf("Muted should take precedence over LabelStyle, got %v", s.cells[1][0].Style)
+	}
+}
+
 func TestTreeRenderIcon(t *testing.T) {
 	tree := NewTreeWidget(TreeConfig{
 		Items: []*TreeNode{

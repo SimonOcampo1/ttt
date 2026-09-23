@@ -21,6 +21,8 @@ type NavigationPanel struct {
 	Icons    string
 	Roots    []string
 
+	gitStyles map[string]term.Style
+
 	OnOpenFile   func(path string)
 	OnRightClick func(node *widgets.TreeNode, sx, sy int)
 	OnRootMenu   func(node *widgets.TreeNode, sx, sy int)
@@ -207,9 +209,37 @@ func (n *NavigationPanel) loadChildren(node *widgets.TreeNode) {
 			Expandable: de.IsDir,
 			Muted:      de.GitIgnored || strings.HasPrefix(de.Name, "."),
 		}
+		child.LabelStyle = n.gitStyleFor(child.ID)
 		if n.Icons == config.IconsNerdFont && !de.IsDir {
 			setFileIcon(child)
 		}
 		node.Children = append(node.Children, child)
 	}
+}
+
+// ApplyGitStatus repaints already-loaded nodes in place instead of reloading
+// from disk, since it runs on every status poll (every couple of seconds).
+func (n *NavigationPanel) ApplyGitStatus(styles map[string]term.Style) {
+	n.gitStyles = styles
+	for _, root := range n.Tree.Config.Items {
+		n.applyGitStyles(root)
+	}
+	n.Tree.SetItems(n.Tree.Config.Items)
+}
+
+func (n *NavigationPanel) applyGitStyles(node *widgets.TreeNode) {
+	node.LabelStyle = n.gitStyleFor(node.ID)
+	for _, child := range node.Children {
+		n.applyGitStyles(child)
+	}
+}
+
+func (n *NavigationPanel) gitStyleFor(path string) term.Style {
+	if !n.Settings.GitStatusColors {
+		return term.StyleDefault
+	}
+	if !n.Settings.DimStagedGitColors {
+		return ui.GitDecorationLive(n.gitStyles[path])
+	}
+	return n.gitStyles[path]
 }

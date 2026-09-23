@@ -167,8 +167,10 @@ func DefaultSearchSettings() SearchSettings {
 }
 
 type ExplorerSettings struct {
-	ShowHidden     bool `json:"showHidden"`
-	ShowGitIgnored bool `json:"showGitIgnored"`
+	ShowHidden         bool `json:"showHidden"`
+	ShowGitIgnored     bool `json:"showGitIgnored"`
+	GitStatusColors    bool `json:"gitStatusColors"`
+	DimStagedGitColors bool `json:"dimStagedGitColors"`
 }
 
 const (
@@ -231,8 +233,9 @@ func DefaultGitSettings() GitSettings {
 
 func DefaultExplorerSettings() ExplorerSettings {
 	return ExplorerSettings{
-		ShowHidden:     true,
-		ShowGitIgnored: true,
+		ShowHidden:      true,
+		ShowGitIgnored:  true,
+		GitStatusColors: true,
 	}
 }
 
