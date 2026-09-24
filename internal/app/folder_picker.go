@@ -212,13 +212,17 @@ func subdirectories(dir string) []folderPickerEntry {
 	}
 	var out []folderPickerEntry
 	for _, item := range items {
-		if !item.IsDir() {
+		path := filepath.Join(dir, item.Name())
+		isDir := item.IsDir()
+		// DirEntry reports a symlink's own type, never its target's.
+		if item.Type()&os.ModeSymlink != 0 {
+			info, err := os.Stat(path)
+			isDir = err == nil && info.IsDir()
+		}
+		if !isDir {
 			continue
 		}
-		out = append(out, folderPickerEntry{
-			label: item.Name(),
-			dir:   filepath.Join(dir, item.Name()),
-		})
+		out = append(out, folderPickerEntry{label: item.Name(), dir: path})
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		hiddenI := strings.HasPrefix(out[i].label, ".")
