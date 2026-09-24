@@ -60,3 +60,20 @@ func TestResizeToSameSizeKeepsPrompt(t *testing.T) {
 		t.Fatalf("prompt cleared by a same-size resize:\n%s", term.term.String())
 	}
 }
+
+// A command whose output lacks a final newline leaves the next prompt on the
+// same row; blanking the prompt must not take that output with it.
+func TestResizeKeepsOutputBeforeSameRowPrompt(t *testing.T) {
+	term := newPromptTerminal(60, 10)
+	term.term.WriteString("partial" + fishPrompt)
+
+	term.resizeEmulator(40, 10)
+
+	screen := term.term.String()
+	if !strings.Contains(screen, "partial") {
+		t.Fatalf("output before the prompt was cleared:\n%s", screen)
+	}
+	if strings.Contains(screen, "/home/user") {
+		t.Fatalf("prompt not cleared:\n%s", screen)
+	}
+}

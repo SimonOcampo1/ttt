@@ -34,8 +34,9 @@ type Terminal struct {
 	exited     bool
 	rawTail    []byte
 	// promptMarker tracks the row of the last OSC 133 prompt start while
-	// that prompt is still being edited.
+	// that prompt is still being edited; promptCol is the column it starts at.
 	promptMarker *xterm.Marker
+	promptCol    int
 	OnUpdate     func()
 	OnExit       func()
 
@@ -190,7 +191,11 @@ func (t *Terminal) resizeEmulator(cols, rows int) bool {
 	if cols == t.cols && rows == t.rows {
 		return false
 	}
-	t.clearPromptForRedraw()
+	// ConPTY repaints the screen itself on resize; the blanking is only for
+	// Unix ptys, where the shell's SIGWINCH redraw is what brings it back.
+	if runtime.GOOS != "windows" {
+		t.clearPromptForRedraw()
+	}
 	trimForReflow(t.term.NormalBuffer(), t.cols, t.rows, cols, rows)
 	t.cols = cols
 	t.rows = rows

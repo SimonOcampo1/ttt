@@ -30,6 +30,7 @@ func (t *Terminal) notePromptMark(data string) {
 		}
 		buf := t.term.NormalBuffer()
 		t.promptMarker = buf.AddMarker(buf.YBase + buf.Y)
+		t.promptCol = buf.X
 	case "C", "D":
 		t.dropPromptMarker()
 	}
@@ -59,7 +60,15 @@ func (t *Terminal) clearPromptForRedraw() {
 	attr := xterm.DefaultAttrData()
 	for row := marker.Line; row <= cursor && row < buf.Lines.Length(); row++ {
 		line := buf.Lines.Get(row)
-		line.Fill(buf.GetNullCell(&attr), false)
-		line.IsWrapped = false
+		// A prompt can start after output that lacked a final newline: keep
+		// that output, and the first row's wrap flag that belongs to it.
+		start := 0
+		if row == marker.Line {
+			start = t.promptCol
+		}
+		line.ReplaceCells(start, line.Len, buf.GetNullCell(&attr), false)
+		if start == 0 {
+			line.IsWrapped = false
+		}
 	}
 }
