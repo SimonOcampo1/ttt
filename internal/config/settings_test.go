@@ -395,3 +395,28 @@ func TestEveryTopLevelSettingsKeyIsKnown(t *testing.T) {
 		}
 	}
 }
+
+func TestPanelPositionSurvivesRoundTrip(t *testing.T) {
+	first, err := json.Marshal(Settings{Panel: PanelSettings{Position: "right"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var loaded Settings
+	if err := json.Unmarshal(first, &loaded); err != nil {
+		t.Fatal(err)
+	}
+	loaded.Panel.Position = "bottom"
+
+	second, err := json.Marshal(loaded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var final Settings
+	if err := json.Unmarshal(second, &final); err != nil {
+		t.Fatal(err)
+	}
+	if final.Panel.Position != "bottom" {
+		t.Fatalf("panel.position = %q after round trip, want \"bottom\"\n%s", final.Panel.Position, second)
+	}
+}

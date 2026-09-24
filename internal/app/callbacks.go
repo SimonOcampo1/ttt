@@ -695,12 +695,16 @@ func registerWidgetCallbacks(app *App) {
 	}
 	app.Changes.Split.OnResize = app.persistCommitHistoryHeight
 
-	app.ContentSplit.OnResize = func(height int) {
-		if height <= 0 {
+	app.ContentSplit.OnResize = func(size int) {
+		if size <= 0 {
 			app.ContentSplit.ShowBottom = false
 		} else {
 			app.ContentSplit.ShowBottom = true
-			app.ContentSplit.BottomH = height
+			if app.ContentSplit.Position == ui.SplitRight {
+				app.ContentSplit.RightW = size
+			} else {
+				app.ContentSplit.BottomH = size
+			}
 			if len(app.Terminals) == 0 {
 				app.SpawnTerminal()
 			} else {
@@ -736,11 +740,16 @@ func registerWidgetCallbacks(app *App) {
 			reg.Execute("terminal.new")
 		}},
 		{Icon: "⋮", OnClick: func(sx, sy int) {
+			dock := ui.ContextMenuItem{Label: "Dock Right", Command: "panel.dockRight"}
+			if app.ContentSplit.Position == ui.SplitRight {
+				dock = ui.ContextMenuItem{Label: "Dock Bottom", Command: "panel.dockBottom"}
+			}
 			items := []ui.ContextMenuItem{
 				{Label: "New Terminal", Command: "terminal.new"},
 				ui.MenuSep(),
 				{Label: "Close All Terminals", Command: "terminal.closeAll"},
 				ui.MenuSep(),
+				dock,
 				{Label: "Close Panel", Command: "panel.toggle"},
 			}
 			openContextMenu(app, items, sx, sy)
