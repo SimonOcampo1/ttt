@@ -33,8 +33,11 @@ type Terminal struct {
 	closed     bool
 	exited     bool
 	rawTail    []byte
-	OnUpdate   func()
-	OnExit     func()
+	// promptMarker tracks the row of the last OSC 133 prompt start while
+	// that prompt is still being edited.
+	promptMarker *xterm.Marker
+	OnUpdate     func()
+	OnExit       func()
 
 	updatePending atomic.Bool
 }
@@ -64,6 +67,7 @@ func New(shell string, cols, rows, scrollbackMax int, env []string, dir string) 
 		xterm.WithRows(rows),
 		xterm.WithScrollback(scrollbackMax),
 	)
+	t.watchPromptMarks()
 	t.term.OnData(func(s string) {
 		io.WriteString(pt, s)
 	})
@@ -175,6 +179,7 @@ func (t *Terminal) Resize(cols, rows int) {
 	rows = max(rows, xterm.MinimumRows)
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	t.clearPromptForRedraw()
 	trimForReflow(t.term.NormalBuffer(), t.cols, t.rows, cols, rows)
 	t.cols = cols
 	t.rows = rows
