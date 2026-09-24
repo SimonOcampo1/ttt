@@ -78,6 +78,12 @@ All editor settings are nested under the `editor` key.
 |-----|------|---------|-------------|
 | `sidebar.panelOrder` | string[] | built-in order | Preferred sidebar panel-header order. Dragging a header or using **Move Panel Left/Right** updates it automatically. Unknown plugin panel IDs are retained until that plugin loads. |
 
+## Panel
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `panel.position` | string | `"bottom"` | Where the panel (terminal, diagnostics, output) is docked: `"bottom"` or `"right"`. **Dock Panel Right/Bottom** updates it automatically. |
+
 ## Git
 
 | Key | Type | Default | Description |

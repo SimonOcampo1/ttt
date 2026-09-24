@@ -397,8 +397,6 @@ func TestEveryTopLevelSettingsKeyIsKnown(t *testing.T) {
 }
 
 func TestPanelPositionSurvivesRoundTrip(t *testing.T) {
-	// Load-then-save is where the shadowing showed up: the first save wrote the
-	// new value, the next one put the loaded one back.
 	first, err := json.Marshal(Settings{Panel: PanelSettings{Position: "right"}})
 	if err != nil {
 		t.Fatal(err)

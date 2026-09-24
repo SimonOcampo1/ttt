@@ -427,13 +427,13 @@ func registerViewCommands(app *App) {
 	})
 
 	reg.Register(command.Command{
-		ID: "panel.moveRight", Title: "View: Move Panel Right",
+		ID: "panel.dockRight", Title: "View: Dock Panel Right",
 		Keywords: []string{"view", "panel", "terminal", "dock", "position", "side"},
 		Handler:  func() { app.SetPanelPosition(ui.SplitRight) },
 	})
 
 	reg.Register(command.Command{
-		ID: "panel.moveBottom", Title: "View: Move Panel Bottom",
+		ID: "panel.dockBottom", Title: "View: Dock Panel Bottom",
 		Keywords: []string{"view", "panel", "terminal", "dock", "position", "down"},
 		Handler:  func() { app.SetPanelPosition(ui.SplitBottom) },
 	})

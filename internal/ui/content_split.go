@@ -7,9 +7,7 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-// SplitPosition says which edge the secondary pane is docked to. The zero value
-// is SplitBottom, so every existing ContentSplitWidget (the changes panel among
-// them) keeps the historical horizontal split without opting in.
+// The zero value must stay SplitBottom: the changes panel reuses this widget.
 type SplitPosition int
 
 const (
@@ -19,12 +17,8 @@ const (
 
 type ContentSplitWidget struct {
 	BaseWidget
-	Top    Widget
-	Bottom Widget
-	// Position picks the edge; BottomH/MinBottomH size the pane when docked to
-	// the bottom, RightW/MinRightW when docked to the right. They are separate
-	// because a sensible height in rows is not a sensible width in columns, and
-	// toggling between edges should not carry one over to the other.
+	Top                       Widget
+	Bottom                    Widget
 	Position                  SplitPosition
 	ShowBottom                bool
 	BottomH                   int
@@ -75,11 +69,13 @@ func (cs *ContentSplitWidget) constrainedBottomHeight(totalH, requested int) int
 	return min(max(requested, minBottom), maxBottom)
 }
 
+const minTopW = 20
+
 func (cs *ContentSplitWidget) constrainedRightWidth(totalW, requested int) int {
 	if totalW <= 1 {
 		return 0
 	}
-	maxRight := max(totalW-1-max(cs.MinTopH, 0), 0)
+	maxRight := max(totalW-1-minTopW, 0)
 	minRight := min(max(cs.MinRightW, 0), maxRight)
 	return min(max(requested, minRight), maxRight)
 }
@@ -173,16 +169,14 @@ func (cs *ContentSplitWidget) Render(surface Surface) {
 	}
 }
 
-// renderRight lays the secondary pane down the right edge. The primary pane then
-// spans the full height, so the sidebar's right border starts where it does when
-// there is no secondary pane at all.
 func (cs *ContentSplitWidget) renderRight(surface Surface, r Rect, w, h int, b term.BorderSet, bs term.Style) {
 	rightW := cs.constrainedRightWidth(w, cs.requestedRightWidth(w))
 	divX := w - rightW - 1
 	topW := divX
 
+	// The panel's tab strip is one row shorter than the editor's.
 	if cs.RightBorderStartY != nil {
-		*cs.RightBorderStartY = 2
+		*cs.RightBorderStartY = 1
 	}
 
 	if cs.Top != nil && topW > 0 {

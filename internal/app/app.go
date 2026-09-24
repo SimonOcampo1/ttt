@@ -214,9 +214,8 @@ func (a *App) persistSidebarWidth(w int) {
 	}
 }
 
-// SetPanelPosition docks the bottom panel to a different edge and remembers it.
-// The terminals are resized against the panel's new rect, which only exists after
-// the next render, so the resize rides along with the caller's redraw.
+// The panel's new rect only exists after the next render, so the terminal
+// resize rides along with the caller's redraw.
 func (a *App) SetPanelPosition(pos ui.SplitPosition) {
 	if a.ContentSplit.Position == pos {
 		return
