@@ -30,6 +30,9 @@ var (
 func InstallLauncher(exe string) (string, error) {
 	switch runtime.GOOS {
 	case "windows":
+		if os.Getenv("LOCALAPPDATA") == "" {
+			return "", ErrLauncherUnsupported
+		}
 		return installTerminalFragment(windowsFragmentDir(), exe)
 	case "darwin":
 		return "", ErrLauncherUnsupported
@@ -40,6 +43,10 @@ func InstallLauncher(exe string) (string, error) {
 func RemoveLauncher() error {
 	switch runtime.GOOS {
 	case "windows":
+		// Without LOCALAPPDATA the path would be relative to the cwd.
+		if os.Getenv("LOCALAPPDATA") == "" {
+			return ErrLauncherUnsupported
+		}
 		return os.RemoveAll(windowsFragmentDir())
 	case "darwin":
 		return ErrLauncherUnsupported
