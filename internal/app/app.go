@@ -111,10 +111,13 @@ type App struct {
 	pendingCurrentChangesOpen bool
 	// appliedSettings is the last value ApplySettings acted on. Callers routinely
 	// mutate a.Settings before calling it, so a.Settings cannot serve as "before".
-	appliedSettings    config.Settings
-	eventLoopDoneOnce  sync.Once
-	eventLoopCloseOnce sync.Once
-	eventLoopDone      chan struct{}
+	appliedSettings config.Settings
+	// welcomeIsEmptyState is set while the welcome page stands in for an
+	// empty editor, as opposed to being opened from Help.
+	welcomeIsEmptyState bool
+	eventLoopDoneOnce   sync.Once
+	eventLoopCloseOnce  sync.Once
+	eventLoopDone       chan struct{}
 }
 
 func (a *App) eventLoopDoneSignal() chan struct{} {
@@ -390,8 +393,16 @@ func (a *App) CloseAllTerminals() {
 
 func (a *App) refreshWorkspaceWidgets() {
 	paths := a.Workspace.Paths()
+	wasEmpty := len(a.Explorer.Roots) == 0
 
 	a.Explorer.SetRoots(paths)
+	switch {
+	case len(paths) == 0:
+		a.ShowEmptyState()
+	case wasEmpty:
+		a.closeWelcome()
+		a.ShowSidebar()
+	}
 
 	a.Search.SetWorkDirs(paths)
 	if a.Repository != nil {

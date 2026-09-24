@@ -611,6 +611,12 @@ func registerWidgetCallbacks(app *App) {
 		openContextMenu(app, tabContextMenu, sx, sy)
 	}
 
+	app.Explorer.OnAction = func(id string) { reg.Execute(id) }
+	app.EditorGroup.OnEmpty = func() {
+		if len(app.Workspace.Paths()) == 0 {
+			app.ShowEmptyState()
+		}
+	}
 	app.Explorer.OnOpenFile = func(path string) {
 		app.EditorGroup.OpenFile(path)
 		app.FocusEditorIfEnabled()
