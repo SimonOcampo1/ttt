@@ -91,6 +91,12 @@ All editor settings are nested under the `editor` key.
 | `welcome.showOnHome` | bool | `false` | Start on the welcome page instead of opening `$HOME` when ttt runs there with no arguments, as desktop launchers do. `ttt --welcome` does the same from anywhere. Also in **Settings > Advanced**. |
 | `welcome.favorites` | string[] | `[]` | Folders listed on the welcome page, opened with one click. `~` is expanded; missing folders are skipped. **Add to Favorites** / **Remove from Favorites** in an Explorer root's right-click menu (or **Welcome: Add/Remove Folder to/from Favorites** in the palette) update it automatically. |
 
+## Desktop
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `desktop.launcher` | bool | `false` | Adds ttt to the desktop's application launcher, with its icon. On Linux it writes `ttt.desktop` and `ttt.svg` under `$XDG_DATA_HOME` and opens in the terminal ttt was running in when enabled (kitty, WezTerm, Alacritty, Ghostty, foot, Konsole), falling back to `Terminal=true`. On Windows it adds a Windows Terminal profile. Turning it off removes only a launcher ttt created. Also **Toggle Desktop Launcher** in the command palette. |
+
 ## Git
 
 | Key | Type | Default | Description |
