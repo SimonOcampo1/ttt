@@ -179,12 +179,23 @@ func (t *Terminal) Resize(cols, rows int) {
 	rows = max(rows, xterm.MinimumRows)
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	if t.resizeEmulator(cols, rows) {
+		t.pt.Resize(cols, rows)
+	}
+}
+
+// resizeEmulator reports whether the size changed. An unchanged size must not
+// clear the prompt: the pty sends no SIGWINCH for it, so nothing redraws it.
+func (t *Terminal) resizeEmulator(cols, rows int) bool {
+	if cols == t.cols && rows == t.rows {
+		return false
+	}
 	t.clearPromptForRedraw()
 	trimForReflow(t.term.NormalBuffer(), t.cols, t.rows, cols, rows)
 	t.cols = cols
 	t.rows = rows
 	t.term.Resize(cols, rows)
-	t.pt.Resize(cols, rows)
+	return true
 }
 
 // AckUpdate must run before a frame reads the emulator so later output re-arms OnUpdate.
