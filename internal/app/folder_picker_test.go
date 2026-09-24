@@ -33,6 +33,26 @@ func TestFolderPickerEntriesOrdersTheListing(t *testing.T) {
 	}
 }
 
+func TestFolderPickerEntriesFollowsSymlinks(t *testing.T) {
+	dir := t.TempDir()
+	target := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "file"), nil, 0644); err != nil {
+		t.Fatal(err)
+	}
+	links := map[string]string{"to-dir": target, "to-file": filepath.Join(dir, "file"), "broken": filepath.Join(dir, "missing")}
+	for name, dest := range links {
+		if err := os.Symlink(dest, filepath.Join(dir, name)); err != nil {
+			t.Skipf("symlinks unavailable: %v", err)
+		}
+	}
+
+	got := labels(folderPickerEntries(dir))
+	want := []string{"..", "to-dir"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("entries = %v, want %v", got, want)
+	}
+}
+
 // The root has no parent, and offering ".." there would just point at itself.
 func TestFolderPickerEntriesOmitsParentAtRoot(t *testing.T) {
 	got := labels(folderPickerEntries(string(os.PathSeparator)))
