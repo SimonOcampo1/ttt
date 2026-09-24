@@ -34,7 +34,7 @@ func TestDetectTerminal(t *testing.T) {
 func TestDesktopEntryExec(t *testing.T) {
 	entry := desktopEntry("/opt/my apps/ttt", &launchTerminal{argv: []string{"/usr/bin/kitty", "-e"}, class: "ttt"})
 	for _, want := range []string{
-		`Exec=/usr/bin/kitty -e "/opt/my apps/ttt" %F`,
+		`Exec=/usr/bin/kitty -e "/opt/my apps/ttt" --welcome %F`,
 		"Terminal=false",
 		"StartupWMClass=ttt",
 		launcherMarker,
@@ -44,7 +44,7 @@ func TestDesktopEntryExec(t *testing.T) {
 		}
 	}
 
-	if entry := desktopEntry("/usr/bin/ttt", nil); !strings.Contains(entry, "Exec=/usr/bin/ttt %F\nTerminal=true\n") {
+	if entry := desktopEntry("/usr/bin/ttt", nil); !strings.Contains(entry, "Exec=/usr/bin/ttt --welcome %F\nTerminal=true\n") {
 		t.Errorf("fallback entry:\n%s", entry)
 	}
 	if got := quoteExecArg(`/a/$b"c`); got != `"/a/\$b\"c"` {
@@ -108,7 +108,7 @@ func TestTerminalFragment(t *testing.T) {
 	if err := json.Unmarshal(data, &fragment); err != nil {
 		t.Fatal(err)
 	}
-	if len(fragment.Profiles) != 1 || fragment.Profiles[0]["commandline"] != `"C:\Tools\ttt.exe"` || fragment.Profiles[0]["icon"] != "ttt.png" {
+	if len(fragment.Profiles) != 1 || fragment.Profiles[0]["commandline"] != `"C:\Tools\ttt.exe" --welcome` || fragment.Profiles[0]["icon"] != "ttt.png" {
 		t.Fatalf("fragment = %s", data)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "ttt.png")); err != nil {

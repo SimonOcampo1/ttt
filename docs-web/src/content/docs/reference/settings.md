@@ -95,7 +95,7 @@ All editor settings are nested under the `editor` key.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `desktop.launcher` | bool | `false` | Adds ttt to the desktop's application launcher, with its icon. On Linux it writes `ttt.desktop` and `ttt.svg` under `$XDG_DATA_HOME` and opens in the terminal ttt was running in when enabled (kitty, WezTerm, Alacritty, Ghostty, foot, Konsole), falling back to `Terminal=true`. On Windows it adds a Windows Terminal profile. Turning it off removes only a launcher ttt created. Also **Toggle Desktop Launcher** in the command palette. |
+| `desktop.launcher` | bool | `false` | Adds ttt to the desktop's application launcher, with its icon; it starts on the welcome page (`ttt --welcome`). On Linux it writes `ttt.desktop` and `ttt.svg` under `$XDG_DATA_HOME` and opens in the terminal ttt was running in when enabled (kitty, WezTerm, Alacritty, Ghostty, foot, Konsole), falling back to `Terminal=true`. On Windows it adds a Windows Terminal profile. Turning it off removes only a launcher ttt created. Also **Toggle Desktop Launcher** in the command palette. |
 
 ## Git
 

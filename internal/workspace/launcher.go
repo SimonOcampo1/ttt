@@ -111,7 +111,7 @@ func desktopEntry(exe string, term *launchTerminal) string {
 	if term != nil {
 		argv = append(argv, term.argv...)
 	}
-	argv = append(argv, exe)
+	argv = append(argv, exe, "--welcome")
 	quoted := make([]string, len(argv))
 	for i, arg := range argv {
 		quoted[i] = quoteExecArg(arg)
@@ -203,7 +203,7 @@ func installTerminalFragment(dir, exe string) (string, error) {
 	fragment := map[string]any{
 		"profiles": []map[string]any{{
 			"name":              "TTT Editor",
-			"commandline":       `"` + exe + `"`,
+			"commandline":       `"` + exe + `" --welcome`,
 			"icon":              "ttt.png",
 			"startingDirectory": "%USERPROFILE%",
 		}},
