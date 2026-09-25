@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/eugenioenko/ttt/internal/widgets"
 )
 
 func TestWelcomeTabListsStartActions(t *testing.T) {
@@ -127,4 +129,30 @@ func TestWelcomeFavoriteOpensFolder(t *testing.T) {
 		}
 	}
 	t.Fatalf("favorite row not found:\n%s", h.screenText())
+}
+
+// Adding the open folder saves it and lists it on the welcome page; removing
+// it brings back the hint.
+func TestWelcomeFavoriteCommands(t *testing.T) {
+	h := newTestHarness(t, 100, 40)
+	defer h.stop()
+
+	root := h.app.Workspace.Paths()[0]
+	h.exec("welcome.addFavorite")
+	if favs := h.app.Settings.Welcome.Favorites; len(favs) != 1 {
+		t.Fatalf("favorites = %v, want the open folder", favs)
+	}
+	h.exec("workspace.close")
+	h.redraw()
+	h.assertContains("Favorites")
+	h.assertContains(filepath.Base(root))
+	h.assertNotContains("Right-click a folder")
+
+	h.app.ExplorerContextNode = &widgets.TreeNode{ID: root}
+	h.exec("welcome.removeFavorite")
+	if favs := h.app.Settings.Welcome.Favorites; len(favs) != 0 {
+		t.Fatalf("favorites = %v after removing, want none", favs)
+	}
+	h.redraw()
+	h.assertContains("Right-click a folder")
 }

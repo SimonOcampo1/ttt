@@ -82,6 +82,7 @@ func layoutWelcome(w, h, n, sections int) welcomeLayout {
 type welcomeView struct {
 	widgets.BaseWidget
 	items      []welcomeItem
+	note       string // muted line under the items, laid out like a section
 	selected   int
 	wasPressed bool
 	rowX, rowW int
@@ -98,6 +99,9 @@ func (v *welcomeView) Render(surface widgets.Surface) {
 		return
 	}
 	sections := 0
+	if v.note != "" {
+		sections++
+	}
 	for _, item := range v.items {
 		if item.section != "" {
 			sections++
@@ -148,6 +152,10 @@ func (v *welcomeView) Render(surface widgets.Surface) {
 		v.rowY = append(v.rowY, origin.Y+y)
 		v.renderRow(surface, y, v.items[i].label, v.items[i].detail, i == v.selected)
 		y += 1 + l.gap
+	}
+
+	if v.note != "" && len(l.title) > 0 {
+		surface.DrawText((w-textwidth.String(v.note))/2, y, v.note, w, term.StyleMuted)
 	}
 
 	if l.hint {

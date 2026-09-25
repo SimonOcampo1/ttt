@@ -1,6 +1,9 @@
 package app
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 func TestLayoutWelcomeShrinksTitleBeforeSpacing(t *testing.T) {
 	tests := []struct {
@@ -31,5 +34,21 @@ func TestLayoutWelcomeReservesSectionRows(t *testing.T) {
 	sectioned := layoutWelcome(120, 60, 8, 1)
 	if sectioned.height != plain.height+welcomeSectionRows {
 		t.Errorf("height with a section = %d, want %d", sectioned.height, plain.height+welcomeSectionRows)
+	}
+}
+
+func TestTildePath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	tests := map[string]string{
+		filepath.Join(home, "code", "ttt"): "~/code/ttt",
+		home:                               home,
+		filepath.Dir(home):                 filepath.Dir(home),
+		home + "-other":                    home + "-other",
+	}
+	for in, want := range tests {
+		if got := tildePath(in); got != want {
+			t.Errorf("tildePath(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

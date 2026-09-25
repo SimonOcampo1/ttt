@@ -411,6 +411,18 @@ func registerWorkspaceCommands(app *App) {
 	})
 
 	reg.Register(command.Command{
+		ID: "welcome.addFavorite", Title: "Welcome: Add Folder to Favorites",
+		Keywords: []string{"welcome", "favorite", "bookmark", "folder", "project"},
+		Handler:  app.AddFavorite,
+	})
+
+	reg.Register(command.Command{
+		ID: "welcome.removeFavorite", Title: "Welcome: Remove Folder from Favorites",
+		Keywords: []string{"welcome", "favorite", "bookmark", "folder", "project"},
+		Handler:  app.RemoveFavorite,
+	})
+
+	reg.Register(command.Command{
 		ID: "help.welcome", Title: "Help: Welcome",
 		Keywords: []string{"welcome", "start", "getting started", "home"},
 		Handler:  app.ShowWelcome,

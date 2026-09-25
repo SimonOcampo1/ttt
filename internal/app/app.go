@@ -115,6 +115,7 @@ type App struct {
 	// welcomeIsEmptyState is set while the welcome page stands in for an
 	// empty editor, as opposed to being opened from Help.
 	welcomeIsEmptyState bool
+	welcomeView         *welcomeView
 	eventLoopDoneOnce   sync.Once
 	eventLoopCloseOnce  sync.Once
 	eventLoopDone       chan struct{}
