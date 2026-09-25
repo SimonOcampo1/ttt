@@ -270,3 +270,26 @@ func TestCloseWorkspaceKeepsOpenFiles(t *testing.T) {
 	h.redraw()
 	h.assertContains("Welcome")
 }
+
+// A welcome action runs on the press; the rest of the click must not pull the
+// focus back out of the dialog it opened, or typing goes nowhere.
+func TestWelcomeClickLeavesFocusInDialog(t *testing.T) {
+	h := newTestHarness(t, 100, 40)
+	defer h.stop()
+
+	h.exec("help.welcome")
+	h.redraw()
+	for y := 0; y < 40; y++ {
+		row := h.screenRow(y)
+		if x := displayColumnOf(row, "Open Workspace…"); x >= 0 {
+			h.click(x, y)
+			for _, r := range "demo.ttt" {
+				h.pressRune(r)
+			}
+			h.redraw()
+			h.assertContains("❯ demo.ttt")
+			return
+		}
+	}
+	t.Fatalf("Open Workspace row not found:\n%s", h.screenText())
+}
