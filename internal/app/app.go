@@ -912,9 +912,12 @@ func (a *App) ShowSelectDialog(title string, items []widgets.SelectItem, onSelec
 func (a *App) pointerShapeAt(mx, my int) string {
 	switch {
 	// The closed hand stays for the whole drag, drop target included: "copy"
-	// looks like the plain arrow in most cursor themes.
+	// looks like the plain arrow in most cursor themes. An open hand on the
+	// pressed row says it can be dragged before it moves.
 	case a.pathDrag.active:
 		return "grabbing"
+	case a.pathDrag.pressed && a.pathDrag.path != "":
+		return "grab"
 	case a.ContentSplit.Dragging():
 		return a.ContentSplit.ResizeShape()
 	case a.SplitPanel.Dragging():
