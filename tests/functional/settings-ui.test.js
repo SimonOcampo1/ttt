@@ -29,8 +29,10 @@ describe("settings editor", () => {
       "Settings",
       "Editor",
       "Appearance",
-      "Completion",
-      "Advanced",
+      "Diff",
+      "Sidebar",
+      "Terminal",
+      "General",
       "Tab size",
       "Word wrap",
       "Apply",
@@ -64,6 +66,8 @@ describe("settings editor", () => {
 
     // Tab onto Word wrap. The assertions name that row, so a traversal that
     // lands elsewhere fails loudly instead of passing on a no-op.
+    tui.press("tab");
+    tui.press("tab");
     tui.press("tab");
     tui.press("tab");
     tui.press("tab");

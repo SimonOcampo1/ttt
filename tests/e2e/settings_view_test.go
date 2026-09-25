@@ -22,7 +22,8 @@ func TestSettingsViewOpensAsTab(t *testing.T) {
 	screen := h.screenText()
 	for _, want := range []string{
 		"Settings",
-		"Editor", "Appearance", "Completion", "Advanced",
+		"Editor", "Appearance", "Diff", "Sidebar", "Terminal", "General",
+		"Indentation",
 		"Tab size", "Word wrap", "Insert spaces",
 		"Cancel", "Apply",
 	} {
@@ -160,16 +161,16 @@ func TestSettingsEnumSelectOpensPopup(t *testing.T) {
 	}
 }
 
-func TestSettingsAppearanceOwnsDiffContextControl(t *testing.T) {
+func TestSettingsDiffOwnsDiffContextControl(t *testing.T) {
 	h := openSettings(t)
 	defer h.stop()
 	clickRowControl(t, h, "Editor", "Editor")
 	if rowHas(h, "Diff context", "Changes Only") {
 		t.Fatalf("Editor still contains the Diff context control:\n%s", h.screenText())
 	}
-	clickRowControl(t, h, "Appearance", "Appearance")
+	clickRowControl(t, h, "Diff", "Diff")
 	if !rowHas(h, "Diff context", "Changes Only") {
-		t.Fatalf("Appearance is missing the normalized Diff context control:\n%s", h.screenText())
+		t.Fatalf("Diff is missing the normalized Diff context control:\n%s", h.screenText())
 	}
 	clickRowControl(t, h, "Diff context", "Changes Only")
 	clickRowControl(t, h, "Full File", "Full File")
@@ -179,13 +180,13 @@ func TestSettingsAppearanceOwnsDiffContextControl(t *testing.T) {
 	}
 }
 
-func TestSettingsCollapsedDiffEmphasisLiveAppliesFromAppearance(t *testing.T) {
+func TestSettingsCollapsedDiffEmphasisLiveAppliesFromDiff(t *testing.T) {
 	h := openSettings(t)
 	defer h.stop()
 	clickRowControl(t, h, "Editor", "Editor")
-	clickRowControl(t, h, "Appearance", "Appearance")
+	clickRowControl(t, h, "Diff", "Diff")
 	if !rowHas(h, "Emphasize collapsed diff rows", uncheckedBox) {
-		t.Fatalf("Appearance is missing the collapsed-row emphasis setting:\n%s", h.screenText())
+		t.Fatalf("Diff is missing the collapsed-row emphasis setting:\n%s", h.screenText())
 	}
 	clickRowControl(t, h, "Emphasize collapsed diff rows", uncheckedBox)
 	if h.app.Settings.Editor.DiffCollapsedEmphasis || h.app.EditorGroup.DiffCollapsedEmphasis {
@@ -199,11 +200,11 @@ func TestSettingsCollapsedDiffEmphasisLiveAppliesFromAppearance(t *testing.T) {
 
 func TestSettingsGitFileViewLiveAppliesOnlyAfterApply(t *testing.T) {
 	h := openSettings(t)
-	clickRowControl(t, h, "Advanced", "Advanced")
-	if !rowHas(h, "Git: file view", "List") {
+	clickRowControl(t, h, "Sidebar", "Sidebar")
+	if !rowHas(h, "File view", "List") {
 		t.Fatalf("Git file view should default to List:\n%s", h.screenText())
 	}
-	clickRowControl(t, h, "Git: file view", "List")
+	clickRowControl(t, h, "File view", "List")
 	clickRowControl(t, h, "Tree", "Tree")
 	if h.app.Settings.Git.FileView != config.GitFileViewList || h.app.Changes.FileView() != config.GitFileViewList {
 		t.Fatal("Git file view applied before Apply")
