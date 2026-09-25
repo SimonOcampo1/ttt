@@ -235,3 +235,38 @@ func TestWelcomeLongFavoritesScroll(t *testing.T) {
 	h.assertContains("proj-30")
 	h.assertNotContains("proj-01")
 }
+
+// Closing the workspace with files open leaves them alone; the welcome page
+// shows once they are closed.
+func TestCloseWorkspaceKeepsOpenFiles(t *testing.T) {
+	h := newTestHarness(t, 100, 30)
+	defer h.stop()
+
+	dir := t.TempDir()
+	first, file := filepath.Join(dir, "first.txt"), filepath.Join(dir, "keep.txt")
+	for _, p := range []string{first, file} {
+		if err := os.WriteFile(p, []byte("content of "+filepath.Base(p)+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Opening a file twice pins its tab, so the second one does not replace it.
+	for _, p := range []string{first, first, file, file} {
+		h.app.EditorGroup.OpenFile(p)
+	}
+	if n := h.app.EditorGroup.TabCount(); n < 2 {
+		t.Fatalf("%d tabs open, want both files", n)
+	}
+	// The active tab is not the last one, where a transient welcome tab would
+	// have shifted the selection.
+	h.app.EditorGroup.SwitchToTabByPath(first)
+	h.exec("workspace.close")
+	h.redraw()
+	h.assertNotContains("Welcome")
+	if got := h.app.EditorGroup.ActiveFilePath(); got != first {
+		t.Fatalf("active tab = %q after Close Workspace, want %q", got, first)
+	}
+
+	h.exec("tab.closeAll")
+	h.redraw()
+	h.assertContains("Welcome")
+}

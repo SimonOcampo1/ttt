@@ -403,8 +403,11 @@ func (a *App) refreshWorkspaceWidgets() {
 
 	a.Explorer.SetRoots(paths)
 	switch {
-	case len(paths) == 0:
+	case len(paths) == 0 && (a.editorIsBlank() || a.welcomeIsEmptyState):
 		a.ShowEmptyState()
+	case len(paths) == 0:
+		// Files are still open: the welcome page waits for them to close.
+		a.welcomeWhenEmpty = true
 	case wasEmpty:
 		a.welcomeWhenEmpty = false
 		a.closeWelcome()

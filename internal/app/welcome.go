@@ -70,7 +70,7 @@ func (a *App) ShowWelcome() {
 	a.welcomeView = view
 	a.refreshWelcome()
 	adapter := ui.NewWidgetAdapter(view)
-	onlyBlankUntitled := a.EditorGroup.TabCount() == 1 && a.EditorGroup.IsActiveVirtual() && isBlank(a.EditorGroup.ActiveBuffer())
+	onlyBlankUntitled := a.editorIsBlank()
 	a.EditorGroup.OpenPluginTab(welcomeTabID, "Welcome", adapter)
 	if onlyBlankUntitled {
 		a.EditorGroup.CloseOtherTabs()
@@ -92,6 +92,11 @@ func (a *App) refreshWelcome() {
 		v.note = welcomeFavoritesHint
 	}
 	v.selected = min(v.selected, len(v.items)-1)
+}
+
+// editorIsBlank reports whether the only tab is an untouched untitled buffer.
+func (a *App) editorIsBlank() bool {
+	return a.EditorGroup.TabCount() == 1 && a.EditorGroup.IsActiveVirtual() && isBlank(a.EditorGroup.ActiveBuffer())
 }
 
 func isBlank(b *buffer.Buffer) bool {

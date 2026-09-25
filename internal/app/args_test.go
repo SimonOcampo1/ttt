@@ -116,6 +116,7 @@ func TestResolveArgsSkipsHomeAsWorkspace(t *testing.T) {
 
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Chdir(home)
 	if ws, _, _, _ := resolveArgs(false); len(ws.Paths()) != 1 {
 		t.Fatalf("cwd == $HOME without welcome.showOnHome opened %v, want $HOME", ws.Paths())
