@@ -115,3 +115,29 @@ func TestTerminalFragment(t *testing.T) {
 		t.Fatalf("icon not written: %v", err)
 	}
 }
+
+// A stowed icon is a symlink into a dotfiles repo: installing must replace the
+// link, not overwrite the file it points to.
+func TestInstallDesktopEntryReplacesIconSymlink(t *testing.T) {
+	dataHome := t.TempDir()
+	_, iconPath := desktopEntryPaths(dataHome)
+	target := filepath.Join(t.TempDir(), "mine.svg")
+	if err := os.WriteFile(target, []byte("<svg>mine</svg>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(iconPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, iconPath); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := installDesktopEntry(dataHome, "/usr/bin/ttt", nil); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(target); string(got) != "<svg>mine</svg>" {
+		t.Fatalf("symlink target overwritten: %q", got)
+	}
+	if info, err := os.Lstat(iconPath); err != nil || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("icon is still a symlink (err %v)", err)
+	}
+}
