@@ -52,7 +52,9 @@ func TestWelcomeRowRunsOnClick(t *testing.T) {
 		if x := displayColumnOf(row, "Settings"); x >= 0 && !strings.Contains(row, "Welcome") {
 			h.click(x, y)
 			h.redraw()
-			h.assertContains("Tab size")
+			// The form's buttons show on every settings tab.
+			h.assertContains("Cancel")
+			h.assertContains("Apply")
 			return
 		}
 	}
