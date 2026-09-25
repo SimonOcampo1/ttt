@@ -18,7 +18,7 @@ func TestLayoutWelcomeShrinksTitleBeforeSpacing(t *testing.T) {
 		{40, 4, 0, 0},
 	}
 	for _, tt := range tests {
-		l := layoutWelcome(tt.w, tt.h, len(welcomeCommands), 0)
+		l := layoutWelcome(tt.w, tt.h, len(welcomeCommands), 0, 0)
 		if len(l.title) != tt.titleRows || l.gap != tt.gap {
 			t.Errorf("layoutWelcome(%d, %d): title rows %d gap %d, want %d and %d",
 				tt.w, tt.h, len(l.title), l.gap, tt.titleRows, tt.gap)
@@ -30,8 +30,8 @@ func TestLayoutWelcomeShrinksTitleBeforeSpacing(t *testing.T) {
 }
 
 func TestLayoutWelcomeReservesSectionRows(t *testing.T) {
-	plain := layoutWelcome(120, 60, 8, 0)
-	sectioned := layoutWelcome(120, 60, 8, 1)
+	plain := layoutWelcome(120, 60, 8, 0, 0)
+	sectioned := layoutWelcome(120, 60, 8, 0, 1)
 	if sectioned.height != plain.height+welcomeSectionRows {
 		t.Errorf("height with a section = %d, want %d", sectioned.height, plain.height+welcomeSectionRows)
 	}

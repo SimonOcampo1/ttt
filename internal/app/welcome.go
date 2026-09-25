@@ -45,9 +45,16 @@ func (a *App) welcomeItems() []welcomeItem {
 		if info, err := os.Stat(abs); err != nil || !info.IsDir() {
 			continue
 		}
-		item := welcomeItem{label: filepath.Base(abs), detail: fav, run: func() { a.openFolderPath(abs) }}
+		item := welcomeItem{
+			label:  filepath.Base(abs),
+			detail: fav,
+			tight:  true,
+			run:    func() { a.openFolderPath(abs) },
+			copy:   func() { a.FileOpCopyAbsolutePath(abs) },
+		}
 		if len(items) == len(welcomeCommands) {
 			item.section = "Favorites"
+			item.tight = false
 		}
 		items = append(items, item)
 	}
@@ -97,6 +104,7 @@ func (a *App) ShowEmptyState() {
 	a.ShowWelcome()
 	a.EditorGroup.EmptyStateID = welcomeTabID
 	a.welcomeIsEmptyState = true
+	a.welcomeWhenEmpty = true
 	a.HideSidebar()
 }
 
@@ -136,10 +144,15 @@ func tildePath(abs string) string {
 	return abs
 }
 
+// saveFavorites writes only the favorites onto the settings on disk: saving
+// a.Settings whole would also write this window's layout over whatever another
+// ttt window saved.
 func (a *App) saveFavorites(favs []string, msg string) {
 	a.Settings.Welcome.Favorites = favs
 	a.refreshWelcome()
-	if err := config.SaveSettings(*a.Settings); err != nil {
+	disk := config.LoadSettings()
+	disk.Welcome.Favorites = favs
+	if err := config.SaveSettings(disk); err != nil {
 		a.StatusError("Failed to save favorites: " + err.Error())
 		return
 	}

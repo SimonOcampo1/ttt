@@ -115,6 +115,11 @@ type App struct {
 	// welcomeIsEmptyState is set while the welcome page stands in for an
 	// empty editor, as opposed to being opened from Help.
 	welcomeIsEmptyState bool
+	// welcomeWhenEmpty is set once the session reaches the welcome page with no
+	// folder, and cleared when a folder opens: only then does closing every tab
+	// bring the page back. Loose files opened from the command line still end
+	// on an untitled tab.
+	welcomeWhenEmpty bool
 	welcomeView         *welcomeView
 	eventLoopDoneOnce   sync.Once
 	eventLoopCloseOnce  sync.Once
@@ -401,6 +406,7 @@ func (a *App) refreshWorkspaceWidgets() {
 	case len(paths) == 0:
 		a.ShowEmptyState()
 	case wasEmpty:
+		a.welcomeWhenEmpty = false
 		a.closeWelcome()
 		a.ShowSidebar()
 	}

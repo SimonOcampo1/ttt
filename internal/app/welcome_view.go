@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/eugenioenko/ttt/internal/term"
 	"github.com/eugenioenko/ttt/internal/textwidth"
+	"github.com/eugenioenko/ttt/internal/ui"
 	"github.com/eugenioenko/ttt/internal/widgets"
 	"github.com/gdamore/tcell/v3"
 )
@@ -28,14 +29,20 @@ var welcomeTitles = [][]string{
 const (
 	welcomeSubtitle  = "Terminal Text Tool"
 	welcomeHint      = "↑↓ select   enter open"
+	welcomeCopyHint  = "↑↓ select   enter open   c copy path"
+	welcomeCopyIcon  = "⧉"
 	welcomeShortcutW = 6
+	// Long favorite paths are cut from the left rather than stretching the list.
+	welcomeMaxListW = 64
 )
 
 type welcomeItem struct {
 	label   string
 	detail  string // shortcut or folder path, right-aligned and muted
 	section string // heading drawn above this item, after a blank row
+	tight   bool   // no spacing row above it, for lists that can grow long
 	run     func()
+	copy    func() // when set, a copy button ends the row and "c" runs it
 }
 
 // Each section heading takes a blank row plus the heading row.
@@ -50,18 +57,18 @@ type welcomeLayout struct {
 	height   int
 }
 
-// layoutWelcome fits the page into h rows for n actions under the given
-// number of section headings. Space between the actions outranks the size of
-// the title; with too little room even for the smallest title, only the
-// actions are shown, without headings.
-func layoutWelcome(w, h, n, sections int) welcomeLayout {
+// layoutWelcome fits the page into h rows for n actions, tight of them with
+// no spacing row above, under the given number of section headings. Space
+// between the actions outranks the size of the title; with too little room
+// even for the smallest title, only the actions are shown, without headings.
+func layoutWelcome(w, h, n, tight, sections int) welcomeLayout {
 	for _, gap := range []int{1, 0} {
 		for _, title := range welcomeTitles {
 			if textwidth.String(title[0]) > w {
 				continue
 			}
 			l := welcomeLayout{title: title, subtitle: len(title) > 1, gap: gap}
-			l.height = len(title) + 1 + gap + n + (n-1)*gap + sections*welcomeSectionRows
+			l.height = len(title) + 1 + gap + n + (n-1-tight)*gap + sections*welcomeSectionRows
 			if l.subtitle {
 				l.height += 2
 			}
@@ -87,6 +94,7 @@ type welcomeView struct {
 	wasPressed bool
 	rowX, rowW int
 	rowY       []int
+	copyX      int
 }
 
 func (v *welcomeView) Height() int { return 0 }
@@ -98,16 +106,23 @@ func (v *welcomeView) Render(surface widgets.Surface) {
 	if w <= 0 || h <= 0 {
 		return
 	}
-	sections := 0
+	sections, tight := 0, 0
 	if v.note != "" {
 		sections++
 	}
+	hint := welcomeHint
 	for _, item := range v.items {
 		if item.section != "" {
 			sections++
 		}
+		if item.tight {
+			tight++
+		}
+		if item.copy != nil {
+			hint = welcomeCopyHint
+		}
 	}
-	l := layoutWelcome(w, h, len(v.items), sections)
+	l := layoutWelcome(w, h, len(v.items), tight, sections)
 	y := l.top
 
 	if len(l.title) > 0 {
@@ -126,11 +141,16 @@ func (v *welcomeView) Render(surface widgets.Surface) {
 
 	listW := 0
 	for _, item := range v.items {
-		listW = max(listW, textwidth.String(item.label)+welcomeShortcutW+textwidth.String(item.detail))
+		rowW := textwidth.String(item.label) + welcomeShortcutW + textwidth.String(item.detail)
+		if item.copy != nil {
+			rowW += 2
+		}
+		listW = max(listW, rowW)
 	}
 	// Two cells of padding either side of the highlight.
-	v.rowW = min(listW+4, w)
+	v.rowW = min(listW+4, welcomeMaxListW, w)
 	v.rowX = max((w-v.rowW)/2, 0)
+	v.copyX = v.GetRect().X + v.rowX + v.rowW - 3
 	origin := v.GetRect()
 	// Too short for every action: scroll so the selection stays visible.
 	first, last := 0, len(v.items)
@@ -144,26 +164,30 @@ func (v *welcomeView) Render(surface widgets.Surface) {
 			v.rowY = append(v.rowY, -1)
 			continue
 		}
+		if i > first && !v.items[i].tight {
+			y += l.gap
+		}
 		if v.items[i].section != "" && len(l.title) > 0 {
 			y++
 			surface.DrawText(v.rowX+2, y, v.items[i].section, v.rowX+v.rowW-2, term.StyleMuted)
 			y++
 		}
 		v.rowY = append(v.rowY, origin.Y+y)
-		v.renderRow(surface, y, v.items[i].label, v.items[i].detail, i == v.selected)
-		y += 1 + l.gap
+		v.renderRow(surface, y, v.items[i], i == v.selected)
+		y++
 	}
 
 	if v.note != "" && len(l.title) > 0 {
+		y += l.gap
 		surface.DrawText((w-textwidth.String(v.note))/2, y, v.note, w, term.StyleMuted)
 	}
 
 	if l.hint {
-		surface.DrawText((w-textwidth.String(welcomeHint))/2, l.top+l.height-1, welcomeHint, w, term.StyleMuted)
+		surface.DrawText((w-textwidth.String(hint))/2, l.top+l.height-1, hint, w, term.StyleMuted)
 	}
 }
 
-func (v *welcomeView) renderRow(surface widgets.Surface, y int, label, shortcut string, selected bool) {
+func (v *welcomeView) renderRow(surface widgets.Surface, y int, item welcomeItem, selected bool) {
 	labelStyle, shortcutStyle := term.StyleDefault, term.StyleMuted
 	if selected {
 		labelStyle, shortcutStyle = term.StylePaletteSelected, term.StylePaletteSelected
@@ -173,9 +197,15 @@ func (v *welcomeView) renderRow(surface widgets.Surface, y int, label, shortcut 
 	}
 	// DrawText takes an absolute column limit, not a width.
 	left, right := v.rowX+2, v.rowX+v.rowW-2
-	surface.DrawText(left, y, label, right, labelStyle)
-	if sw := textwidth.String(shortcut); sw > 0 && sw < right-left-textwidth.String(label) {
-		surface.DrawText(right-sw, y, shortcut, right, shortcutStyle)
+	if item.copy != nil {
+		surface.DrawText(right-1, y, welcomeCopyIcon, right, shortcutStyle)
+		right -= 2
+	}
+	surface.DrawText(left, y, item.label, right, labelStyle)
+	// Keep at least two columns between the label and the detail.
+	if avail := right - left - textwidth.String(item.label) - 2; avail > 1 && item.detail != "" {
+		detail := ui.TruncateLeft(item.detail, avail)
+		surface.DrawText(right-textwidth.String(detail), y, detail, right, shortcutStyle)
 	}
 }
 
@@ -206,6 +236,11 @@ func (v *welcomeView) HandleEvent(ev tcell.Event) widgets.EventResult {
 			v.selected = len(v.items) - 1
 		case tcell.KeyEnter:
 			v.items[v.selected].run()
+		case tcell.KeyRune:
+			if term.KeyRune(ev) != 'c' || v.items[v.selected].copy == nil {
+				return widgets.EventIgnored
+			}
+			v.items[v.selected].copy()
 		default:
 			return widgets.EventIgnored
 		}
@@ -214,12 +249,17 @@ func (v *welcomeView) HandleEvent(ev tcell.Event) widgets.EventResult {
 		pressed := ev.Buttons()&tcell.Button1 != 0
 		fresh := pressed && !v.wasPressed
 		v.wasPressed = pressed
-		i := v.rowAt(ev.Position())
+		mx, my := ev.Position()
+		i := v.rowAt(mx, my)
 		if i < 0 {
 			return widgets.EventIgnored
 		}
 		v.selected = i
-		if fresh {
+		switch {
+		case !fresh:
+		case v.items[i].copy != nil && mx >= v.copyX-1:
+			v.items[i].copy()
+		default:
 			v.items[i].run()
 		}
 		return widgets.EventConsumed

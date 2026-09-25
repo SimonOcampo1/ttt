@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/eugenioenko/ttt/internal/core/clipboard"
 	"github.com/eugenioenko/ttt/internal/widgets"
 )
 
@@ -155,4 +156,50 @@ func TestWelcomeFavoriteCommands(t *testing.T) {
 	}
 	h.redraw()
 	h.assertContains("Right-click a folder")
+}
+
+// Loose files opened without a folder keep the old behaviour: closing them
+// all leaves an untitled tab, not the welcome page.
+func TestClosingLooseFilesLeavesUntitled(t *testing.T) {
+	h := newTestHarness(t, 100, 30)
+	defer h.stop()
+
+	for _, p := range h.app.Workspace.Paths() {
+		h.app.Workspace.RemoveFolder(p)
+	}
+	h.exec("file.new")
+	h.exec("tab.closeAll")
+	h.redraw()
+	h.assertNotContains("Welcome")
+	h.assertContains("untitled")
+}
+
+// The copy button on a favorite copies its path instead of opening it.
+func TestWelcomeFavoriteCopyButton(t *testing.T) {
+	clipboard.DisableSystem()
+	h := newTestHarness(t, 100, 40)
+	defer h.stop()
+
+	fav := filepath.Join(t.TempDir(), "fav-project")
+	if err := os.Mkdir(fav, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	h.app.Settings.Welcome.Favorites = []string{fav}
+	h.exec("workspace.close")
+	h.redraw()
+	for y := 0; y < 40; y++ {
+		row := h.screenRow(y)
+		if strings.Contains(row, "fav-project") {
+			h.click(displayColumnOf(row, "⧉"), y)
+			h.redraw()
+			if n := len(h.app.Workspace.Paths()); n != 0 {
+				t.Fatalf("copy button opened the folder (%d open)", n)
+			}
+			if got := clipboard.Get(); got != fav {
+				t.Fatalf("clipboard = %q, want %q", got, fav)
+			}
+			return
+		}
+	}
+	t.Fatalf("favorite row not found:\n%s", h.screenText())
 }
