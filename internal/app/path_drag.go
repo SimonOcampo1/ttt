@@ -14,13 +14,14 @@ import (
 )
 
 // pathDrag tracks a file or folder dragged out of the Explorer. The press
-// stays with the Explorer as usual; only once the pointer leaves it with the
-// button held does the drag start, and from then on the mouse belongs to the
-// drag until the button is released.
+// stays with the Explorer as usual; once the pointer moves off the pressed
+// spot with the button held the drag starts, and from then on the mouse
+// belongs to the drag until the button is released.
 type pathDrag struct {
 	pressed bool
 	path    string
 	active  bool
+	px, py  int // where the press started
 }
 
 const pathDragSegment = "path-drag"
@@ -45,7 +46,8 @@ func (a *App) handlePathDrag(ev *tcell.EventMouse) bool {
 	case !d.pressed:
 		d.pressed = true
 		d.path = a.explorerPathAt(mx, my)
-	case d.active || d.path != "" && !a.overExplorer(mx, my):
+		d.px, d.py = mx, my
+	case d.active || d.path != "" && (my != d.py || mx-d.px >= 2 || d.px-mx >= 2):
 		d.active = true
 		a.showPathDragStatus(a.terminalAt(mx, my) != nil)
 		return true
@@ -67,14 +69,6 @@ func (a *App) showPathDragStatus(overTerminal bool) {
 
 func (a *App) explorerVisible() bool {
 	return a.Sidebar.Visible && a.Sidebar.ActivePanel == "explorer"
-}
-
-func (a *App) overExplorer(mx, my int) bool {
-	if !a.explorerVisible() {
-		return false
-	}
-	r := a.Explorer.Tree.GetRect()
-	return mx >= r.X && mx < r.X+r.W && my >= r.Y && my < r.Y+r.H
 }
 
 // explorerPathAt is the file or folder on the Explorer row under the pointer.
