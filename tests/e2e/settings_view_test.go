@@ -9,22 +9,25 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
+// openSettings opens the settings editor on its Editor tab, where most of
+// these tests work; it opens on General.
 func openSettings(t *testing.T) *testHarness {
 	t.Helper()
 	h := newTestHarness(t, 120, 40)
 	h.exec("settings.openUI")
+	clickRowControl(t, h, "Editor", "Editor")
 	return h
 }
 
 func TestSettingsViewOpensAsTab(t *testing.T) {
-	h := openSettings(t)
+	h := newTestHarness(t, 120, 40)
+	h.exec("settings.openUI")
 
 	screen := h.screenText()
 	for _, want := range []string{
 		"Settings",
-		"Editor", "Appearance", "Diff", "Sidebar", "Terminal", "General",
-		"Indentation",
-		"Tab size", "Word wrap", "Insert spaces",
+		"General", "Editor", "Appearance", "Sidebar", "Terminal", "Diff",
+		"Plugins", "Enable plugins",
 		"Cancel", "Apply",
 	} {
 		if !strings.Contains(screen, want) {
@@ -38,6 +41,7 @@ func TestSettingsViewReflectsCurrentValues(t *testing.T) {
 	h.app.Settings.Editor.WordWrap = true
 	h.app.Settings.Editor.LineNumbers = false
 	h.exec("settings.openUI")
+	clickRowControl(t, h, "Editor", "Editor")
 
 	if !rowHas(h, "Word wrap", checkedBox) {
 		t.Errorf("word wrap should render checked:\n%s", h.screenText())
@@ -306,6 +310,7 @@ func TestSettingsCancelClosesAndDiscardsPendingEdits(t *testing.T) {
 
 	// Reopening starts from the saved settings, not the discarded working copy.
 	h.exec("settings.openUI")
+	clickRowControl(t, h, "Editor", "Editor")
 	if rowHas(h, "Word wrap", checkedBox) {
 		t.Errorf("discarded edit survived into the reopened tab:\n%s", h.screenText())
 	}
