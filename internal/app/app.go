@@ -123,6 +123,7 @@ type App struct {
 	// on an untitled tab.
 	welcomeWhenEmpty      bool
 	welcomeView           *welcomeView
+	pathDrag              pathDrag
 	panelResizing         bool
 	panelResizeFromClosed bool
 	eventLoopDoneOnce     sync.Once
