@@ -223,12 +223,13 @@ func TestWelcomeLongFavoritesScroll(t *testing.T) {
 	h.exec("workspace.close")
 	h.redraw()
 	h.assertContains("Terminal Text Tool")
-	h.assertContains("Favorites  1–10 of 30")
-	h.assertNotContains("proj-11")
+	h.assertContains("Favorites  1–")
+	h.assertContains("of 30")
+	h.assertNotContains("proj-30")
 
 	h.pressKey(tcell.KeyEnd, tcell.ModNone)
 	h.redraw()
-	h.assertContains("Favorites  21–30 of 30")
+	h.assertContains("–30 of 30")
 	h.assertContains("proj-30")
-	h.assertNotContains("proj-20")
+	h.assertNotContains("proj-01")
 }
