@@ -890,6 +890,10 @@ func (a *App) ShowSelectDialog(title string, items []widgets.SelectItem, onSelec
 // ended, and it sees every motion event, which the dividers' own handlers do not.
 func (a *App) pointerShapeAt(mx, my int) string {
 	switch {
+	case a.pathDrag.active && a.terminalAt(mx, my) != nil:
+		return "copy"
+	case a.pathDrag.active:
+		return "grabbing"
 	case a.ContentSplit.Dragging():
 		return a.ContentSplit.ResizeShape()
 	case a.SplitPanel.Dragging():
