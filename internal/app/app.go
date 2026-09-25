@@ -112,6 +112,7 @@ type App struct {
 	// appliedSettings is the last value ApplySettings acted on. Callers routinely
 	// mutate a.Settings before calling it, so a.Settings cannot serve as "before".
 	appliedSettings    config.Settings
+	pathDrag           pathDrag
 	eventLoopDoneOnce  sync.Once
 	eventLoopCloseOnce sync.Once
 	eventLoopDone      chan struct{}
