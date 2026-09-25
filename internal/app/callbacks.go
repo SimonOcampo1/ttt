@@ -611,6 +611,12 @@ func registerWidgetCallbacks(app *App) {
 		openContextMenu(app, tabContextMenu, sx, sy)
 	}
 
+	app.Explorer.OnAction = func(id string) { reg.Execute(id) }
+	app.EditorGroup.OnEmpty = func() {
+		if app.welcomeWhenEmpty && len(app.Workspace.Paths()) == 0 {
+			app.ShowEmptyState()
+		}
+	}
 	app.Explorer.OnOpenFile = func(path string) {
 		app.EditorGroup.OpenFile(path)
 		app.FocusEditorIfEnabled()
@@ -638,10 +644,15 @@ func registerWidgetCallbacks(app *App) {
 	}
 	app.Explorer.OnRootMenu = func(node *widgets.TreeNode, sx, sy int) {
 		app.ExplorerContextNode = node
+		favorite := ui.ContextMenuItem{Label: "Add to Favorites", Command: "welcome.addFavorite"}
+		if app.favoriteIndex(node.ID) >= 0 {
+			favorite = ui.ContextMenuItem{Label: "Remove from Favorites", Command: "welcome.removeFavorite"}
+		}
 		items := []ui.ContextMenuItem{
 			{Label: "Refresh", Command: "explorer.refresh"},
 			{Label: "Copy Path", Command: "explorer.copyAbsolutePath"},
 			ui.MenuSep(),
+			favorite,
 			{Label: "Remove from Workspace", Command: "explorer.removeRoot"},
 			ui.MenuSep(),
 			{Label: "Expand All", Command: "explorer.expandAll"},

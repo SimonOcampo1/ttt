@@ -62,6 +62,13 @@ func section(title string) settingField { return settingField{Label: title, Kind
 func settingsCategories() []settingsCategory {
 	return []settingsCategory{
 		{Title: "General", Fields: []settingField{
+			section("Startup"),
+			{Label: "Welcome page in home folder", Kind: settingBool,
+				GetBool: func(s *config.Settings) bool { return s.Welcome.ShowOnHome },
+				SetBool: func(s *config.Settings, v bool) { s.Welcome.ShowOnHome = v }},
+			{Label: "Show in app launcher", Kind: settingBool,
+				GetBool: func(s *config.Settings) bool { return s.Desktop.Launcher },
+				SetBool: func(s *config.Settings, v bool) { s.Desktop.Launcher = v }},
 			section("Plugins"),
 			{Label: "Enable plugins", Kind: settingBool, Restart: true,
 				GetBool: func(s *config.Settings) bool { return s.Plugins.IsEnabled() },

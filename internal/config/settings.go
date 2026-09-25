@@ -227,6 +227,10 @@ type PanelSettings struct {
 	Position string `json:"position,omitempty"`
 }
 
+type DesktopSettings struct {
+	Launcher bool `json:"launcher,omitempty"`
+}
+
 type GitSettings struct {
 	FileView string `json:"fileView"`
 }
@@ -277,6 +281,14 @@ func DefaultImageSettings() ImageSettings {
 	}
 }
 
+type WelcomeSettings struct {
+	// ShowOnHome shows the welcome page instead of opening $HOME when ttt
+	// starts there with no arguments, as desktop launchers do.
+	ShowOnHome bool `json:"showOnHome,omitempty"`
+	// Favorites are folders listed on the welcome page to open in one step.
+	Favorites []string `json:"favorites,omitempty"`
+}
+
 type Settings struct {
 	Version   int    `json:"version"`
 	Theme     string `json:"theme,omitempty"`
@@ -290,6 +302,7 @@ type Settings struct {
 	Explorer     ExplorerSettings     `json:"explorer"`
 	Sidebar      SidebarSettings      `json:"sidebar,omitzero"`
 	Panel        PanelSettings        `json:"panel,omitzero"`
+	Desktop      DesktopSettings      `json:"desktop,omitzero"`
 	Git          GitSettings          `json:"git"`
 	Terminal     TerminalSettings     `json:"terminal"`
 	LSP          LSPSettings          `json:"lsp"`
@@ -299,6 +312,7 @@ type Settings struct {
 	// Plugins is safe: its only field is a tri-state *bool where nil means the
 	// default, so the zero value and "unset" mean the same thing.
 	Plugins    PluginSettings    `json:"plugins,omitzero"`
+	Welcome    WelcomeSettings   `json:"welcome,omitzero"`
 	Formatters map[string]string `json:"formatters,omitempty"`
 	// Extra holds top-level keys that are not part of the core schema — chiefly
 	// plugin-namespaced settings (e.g. "vim"). Without this, json.Unmarshal into
@@ -311,8 +325,8 @@ type Settings struct {
 // Any other top-level key is preserved via Settings.Extra.
 var knownSettingsKeys = map[string]bool{
 	"version": true, "theme": true, "debugMode": true, "appearance": true, "editor": true,
-	"search": true, "explorer": true, "sidebar": true, "panel": true, "git": true, "terminal": true, "lsp": true,
-	"autocomplete": true, "markdown": true, "image": true, "plugins": true, "formatters": true,
+	"search": true, "explorer": true, "sidebar": true, "panel": true, "desktop": true, "git": true, "terminal": true, "lsp": true,
+	"autocomplete": true, "markdown": true, "image": true, "plugins": true, "formatters": true, "welcome": true,
 }
 
 func (s Settings) MarshalJSON() ([]byte, error) {
