@@ -911,8 +911,8 @@ func (a *App) ShowSelectDialog(title string, items []widgets.SelectItem, onSelec
 // ended, and it sees every motion event, which the dividers' own handlers do not.
 func (a *App) pointerShapeAt(mx, my int) string {
 	switch {
-	case a.pathDrag.active && a.terminalAt(mx, my) != nil:
-		return "copy"
+	// The closed hand stays for the whole drag, drop target included: "copy"
+	// looks like the plain arrow in most cursor themes.
 	case a.pathDrag.active:
 		return "grabbing"
 	case a.ContentSplit.Dragging():
