@@ -6,6 +6,7 @@ import (
 
 	"github.com/eugenioenko/ttt/internal/config"
 	"github.com/eugenioenko/ttt/internal/term"
+	"github.com/eugenioenko/ttt/internal/textwidth"
 	"github.com/eugenioenko/ttt/internal/ui"
 	"github.com/eugenioenko/ttt/internal/widgets"
 )
@@ -60,6 +61,16 @@ func section(title string) settingField { return settingField{Label: title, Kind
 // structured config that a form handles badly, and stay JSON-only.
 func settingsCategories() []settingsCategory {
 	return []settingsCategory{
+		{Title: "General", Fields: []settingField{
+			section("Plugins"),
+			{Label: "Enable plugins", Kind: settingBool, Restart: true,
+				GetBool: func(s *config.Settings) bool { return s.Plugins.IsEnabled() },
+				SetBool: func(s *config.Settings, v bool) { s.Plugins.Enabled = boolPtr(v) }},
+			section("Debugging"),
+			{Label: "Debug mode", Kind: settingBool, Restart: true,
+				GetBool: func(s *config.Settings) bool { return s.DebugMode },
+				SetBool: func(s *config.Settings, v bool) { s.DebugMode = v }},
+		}},
 		{Title: "Editor", Fields: []settingField{
 			section("Indentation"),
 			{Label: "Tab size", Kind: settingInt, Min: 1,
@@ -148,23 +159,6 @@ func settingsCategories() []settingsCategory {
 				GetInt: func(s *config.Settings) int { return s.Markdown.WrapWidth },
 				SetInt: func(s *config.Settings, v int) { s.Markdown.WrapWidth = v }},
 		}},
-		{Title: "Diff", Fields: []settingField{
-			{Label: "Diff mode", Kind: settingEnum, Options: diffModeItems,
-				GetString: func(s *config.Settings) string { return s.Editor.DiffMode },
-				SetString: func(s *config.Settings, v string) { s.Editor.DiffMode = v }},
-			{Label: "Diff context", Kind: settingEnum, Options: diffContextItems,
-				GetString: func(s *config.Settings) string { return s.Editor.DiffContext },
-				SetString: func(s *config.Settings, v string) { s.Editor.DiffContext = v }},
-			{Label: "Diff word wrap", Kind: settingBool,
-				GetBool: func(s *config.Settings) bool { return s.Editor.DiffWordWrap },
-				SetBool: func(s *config.Settings, v bool) { s.Editor.DiffWordWrap = v }},
-			{Label: "High contrast diffs", Kind: settingBool,
-				GetBool: func(s *config.Settings) bool { return s.Editor.DiffHighContrast },
-				SetBool: func(s *config.Settings, v bool) { s.Editor.DiffHighContrast = v }},
-			{Label: "Emphasize collapsed diff rows", Kind: settingBool,
-				GetBool: func(s *config.Settings) bool { return s.Editor.DiffCollapsedEmphasis },
-				SetBool: func(s *config.Settings, v bool) { s.Editor.DiffCollapsedEmphasis = v }},
-		}},
 		{Title: "Sidebar", Fields: []settingField{
 			section("Files"),
 			{Label: "Hidden files", Kind: settingBool,
@@ -206,15 +200,22 @@ func settingsCategories() []settingsCategory {
 				GetInt: func(s *config.Settings) int { return s.Terminal.Scrollback },
 				SetInt: func(s *config.Settings, v int) { s.Terminal.Scrollback = v }},
 		}},
-		{Title: "General", Fields: []settingField{
-			section("Plugins"),
-			{Label: "Enable plugins", Kind: settingBool, Restart: true,
-				GetBool: func(s *config.Settings) bool { return s.Plugins.IsEnabled() },
-				SetBool: func(s *config.Settings, v bool) { s.Plugins.Enabled = boolPtr(v) }},
-			section("Debugging"),
-			{Label: "Debug mode", Kind: settingBool, Restart: true,
-				GetBool: func(s *config.Settings) bool { return s.DebugMode },
-				SetBool: func(s *config.Settings, v bool) { s.DebugMode = v }},
+		{Title: "Diff", Fields: []settingField{
+			{Label: "Diff mode", Kind: settingEnum, Options: diffModeItems,
+				GetString: func(s *config.Settings) string { return s.Editor.DiffMode },
+				SetString: func(s *config.Settings, v string) { s.Editor.DiffMode = v }},
+			{Label: "Diff context", Kind: settingEnum, Options: diffContextItems,
+				GetString: func(s *config.Settings) string { return s.Editor.DiffContext },
+				SetString: func(s *config.Settings, v string) { s.Editor.DiffContext = v }},
+			{Label: "Diff word wrap", Kind: settingBool,
+				GetBool: func(s *config.Settings) bool { return s.Editor.DiffWordWrap },
+				SetBool: func(s *config.Settings, v bool) { s.Editor.DiffWordWrap = v }},
+			{Label: "High contrast diffs", Kind: settingBool,
+				GetBool: func(s *config.Settings) bool { return s.Editor.DiffHighContrast },
+				SetBool: func(s *config.Settings, v bool) { s.Editor.DiffHighContrast = v }},
+			{Label: "Emphasize collapsed diff rows", Kind: settingBool,
+				GetBool: func(s *config.Settings) bool { return s.Editor.DiffCollapsedEmphasis },
+				SetBool: func(s *config.Settings, v bool) { s.Editor.DiffCollapsedEmphasis = v }},
 		}},
 	}
 }
@@ -352,7 +353,7 @@ func (v *settingsView) buildPane(cat settingsCategory) widgets.Widget {
 			if i > 0 {
 				rows = append(rows, widgets.NewLabelWidget(widgets.LabelConfig{}))
 			}
-			rows = append(rows, widgets.NewLabelWidget(widgets.LabelConfig{Text: f.Label, Style: term.StyleBorderActive}))
+			rows = append(rows, sectionHeading(f.Label))
 			indent = 2
 			continue
 		}
@@ -371,6 +372,17 @@ func (v *settingsView) buildPane(cat settingsCategory) widgets.Widget {
 		widgets.NewDividerWidget(widgets.DividerConfig{}),
 		widgets.NewScrollViewWidget(stack),
 	)
+}
+
+// sectionHeading draws a muted title followed by a rule to the pane's edge.
+func sectionHeading(title string) widgets.Widget {
+	name := widgets.NewLabelWidget(widgets.LabelConfig{Text: title, Style: term.StyleMuted})
+	name.FixedWidth = textwidth.String(title)
+	row := widgets.NewHStackWidget(name, widgets.NewDividerWidget(widgets.DividerConfig{}))
+	row.Gap = 1
+	row.FixedHeight = 1
+	row.Box.PaddingRight = 2
+	return row
 }
 
 // One row per setting: label in a fixed left column, control on the right.
