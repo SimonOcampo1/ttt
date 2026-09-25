@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/eugenioenko/ttt/internal/term"
 	"github.com/eugenioenko/ttt/internal/textwidth"
 	"github.com/eugenioenko/ttt/internal/ui"
@@ -34,6 +36,8 @@ const (
 	welcomeShortcutW = 6
 	// Long favorite paths are cut from the left rather than stretching the list.
 	welcomeMaxListW = 64
+	// Fewest favorites kept on screen before the title gives way instead.
+	welcomeMinFavorites = 3
 )
 
 type welcomeItem struct {
@@ -95,6 +99,7 @@ type welcomeView struct {
 	rowX, rowW int
 	rowY       []int
 	copyX      int
+	secOff     int // first favorite shown when the list scrolls
 }
 
 func (v *welcomeView) Height() int { return 0 }
@@ -122,7 +127,34 @@ func (v *welcomeView) Render(surface widgets.Surface) {
 			hint = welcomeCopyHint
 		}
 	}
+	secStart := len(v.items)
+	for i, item := range v.items {
+		if item.section != "" {
+			secStart = i
+			break
+		}
+	}
+	// A long favorites list scrolls inside its section: the page keeps the
+	// title, spacing and hint it has with welcomeMinFavorites of them.
 	l := layoutWelcome(w, h, len(v.items), tight, sections)
+	hidden := 0
+	if excess := len(v.items) - secStart - welcomeMinFavorites; excess > 0 {
+		want := layoutWelcome(w, h, len(v.items)-excess, tight-excess, sections)
+		for hidden < excess && (len(l.title) != len(want.title) || l.gap != want.gap || l.hint != want.hint) {
+			hidden++
+			l = layoutWelcome(w, h, len(v.items)-hidden, tight-hidden, sections)
+		}
+	}
+	shown := len(v.items) - secStart - hidden
+	if hidden > 0 {
+		if v.selected >= secStart {
+			v.secOff = min(v.secOff, v.selected-secStart)
+			v.secOff = max(v.secOff, v.selected-secStart-shown+1)
+		}
+		v.secOff = min(max(v.secOff, 0), hidden)
+	} else {
+		v.secOff = 0
+	}
 	y := l.top
 
 	if len(l.title) > 0 {
@@ -160,16 +192,22 @@ func (v *welcomeView) Render(surface widgets.Surface) {
 	}
 	v.rowY = v.rowY[:0]
 	for i := range v.items {
-		if i < first || i >= last {
+		scrolledOut := i >= secStart && (i < secStart+v.secOff || i >= secStart+v.secOff+shown)
+		if i < first || i >= last || scrolledOut {
 			v.rowY = append(v.rowY, -1)
 			continue
 		}
-		if i > first && !v.items[i].tight {
+		sectionTop := i == secStart+v.secOff
+		if i > first && (!v.items[i].tight || sectionTop) {
 			y += l.gap
 		}
-		if v.items[i].section != "" && len(l.title) > 0 {
+		if sectionTop && len(l.title) > 0 {
+			heading := v.items[secStart].section
+			if hidden > 0 {
+				heading = fmt.Sprintf("%s  %d–%d of %d", heading, v.secOff+1, v.secOff+shown, shown+hidden)
+			}
 			y++
-			surface.DrawText(v.rowX+2, y, v.items[i].section, v.rowX+v.rowW-2, term.StyleMuted)
+			surface.DrawText(v.rowX+2, y, heading, v.rowX+v.rowW-2, term.StyleMuted)
 			y++
 		}
 		v.rowY = append(v.rowY, origin.Y+y)
@@ -246,6 +284,14 @@ func (v *welcomeView) HandleEvent(ev tcell.Event) widgets.EventResult {
 		}
 		return widgets.EventConsumed
 	case *tcell.EventMouse:
+		switch {
+		case ev.Buttons()&tcell.WheelUp != 0:
+			v.selected = max(v.selected-1, 0)
+			return widgets.EventConsumed
+		case ev.Buttons()&tcell.WheelDown != 0:
+			v.selected = min(v.selected+1, len(v.items)-1)
+			return widgets.EventConsumed
+		}
 		pressed := ev.Buttons()&tcell.Button1 != 0
 		fresh := pressed && !v.wasPressed
 		v.wasPressed = pressed

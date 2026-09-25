@@ -119,11 +119,11 @@ type App struct {
 	// folder, and cleared when a folder opens: only then does closing every tab
 	// bring the page back. Loose files opened from the command line still end
 	// on an untitled tab.
-	welcomeWhenEmpty bool
-	welcomeView         *welcomeView
-	eventLoopDoneOnce   sync.Once
-	eventLoopCloseOnce  sync.Once
-	eventLoopDone       chan struct{}
+	welcomeWhenEmpty   bool
+	welcomeView        *welcomeView
+	eventLoopDoneOnce  sync.Once
+	eventLoopCloseOnce sync.Once
+	eventLoopDone      chan struct{}
 }
 
 func (a *App) eventLoopDoneSignal() chan struct{} {

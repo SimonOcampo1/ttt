@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/eugenioenko/ttt/internal/core/clipboard"
 	"github.com/eugenioenko/ttt/internal/widgets"
+	"github.com/gdamore/tcell/v3"
 )
 
 func TestWelcomeTabListsStartActions(t *testing.T) {
@@ -202,4 +204,31 @@ func TestWelcomeFavoriteCopyButton(t *testing.T) {
 		}
 	}
 	t.Fatalf("favorite row not found:\n%s", h.screenText())
+}
+
+// A long favorites list scrolls inside its section; the title stays.
+func TestWelcomeLongFavoritesScroll(t *testing.T) {
+	h := newTestHarness(t, 90, 40)
+	defer h.stop()
+
+	var favs []string
+	for i := 1; i <= 30; i++ {
+		dir := filepath.Join(t.TempDir(), fmt.Sprintf("proj-%02d", i))
+		if err := os.Mkdir(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		favs = append(favs, dir)
+	}
+	h.app.Settings.Welcome.Favorites = favs
+	h.exec("workspace.close")
+	h.redraw()
+	h.assertContains("Terminal Text Tool")
+	h.assertContains("Favorites  1–10 of 30")
+	h.assertNotContains("proj-11")
+
+	h.pressKey(tcell.KeyEnd, tcell.ModNone)
+	h.redraw()
+	h.assertContains("Favorites  21–30 of 30")
+	h.assertContains("proj-30")
+	h.assertNotContains("proj-20")
 }
