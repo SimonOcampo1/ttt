@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+
+	"github.com/eugenioenko/ttt/internal/workspace"
 )
 
 func labels(entries []folderPickerEntry) []string {
@@ -90,5 +92,26 @@ func TestFilterEntriesKeepsTheWayOut(t *testing.T) {
 
 	if got := labels(filterEntries(entries, "")); len(got) != 4 {
 		t.Errorf("empty filter = %v, want everything", got)
+	}
+}
+
+func TestPlaceNodesPinsFavoritesAbove(t *testing.T) {
+	places := []workspace.Place{{Name: "Home", Path: "/home/u"}}
+
+	if got := placeNodes(nil, places); len(got) != 1 || got[0].Label != "Home" {
+		t.Fatalf("without favorites = %v, want just the places", got)
+	}
+
+	got := placeNodes([]favoriteDir{{path: "~/repos/ttt", abs: "/home/u/repos/ttt"}}, places)
+	var gotLabels, gotIDs []string
+	for _, n := range got {
+		gotLabels = append(gotLabels, n.Label)
+		gotIDs = append(gotIDs, n.ID)
+	}
+	if !slices.Equal(gotLabels, []string{"Favorites", "ttt", "Places", "Home"}) {
+		t.Errorf("labels = %v", gotLabels)
+	}
+	if !slices.Equal(gotIDs, []string{"", "/home/u/repos/ttt", "", "/home/u"}) {
+		t.Errorf("ids = %v, headings must have no ID", gotIDs)
 	}
 }
