@@ -1725,3 +1725,19 @@ func TestTreeRevealIDScrollsBackToUnchangedSelection(t *testing.T) {
 		t.Error("RevealID returned true for an unknown id")
 	}
 }
+
+func TestTreeNodeAt(t *testing.T) {
+	tree := NewTreeWidget(TreeConfig{})
+	tree.SetItems([]*TreeNode{{ID: "a", Label: "a"}, {ID: "b", Label: "b"}})
+	renderWidget(tree, 2, 3, 10, 5)
+
+	if n := tree.NodeAt(4, tree.contentY+1); n == nil || n.ID != "b" {
+		t.Fatalf("NodeAt second row = %v, want b", n)
+	}
+	if n := tree.NodeAt(4, tree.contentY+3); n != nil {
+		t.Fatalf("NodeAt past the last row = %v, want nil", n.ID)
+	}
+	if n := tree.NodeAt(20, tree.contentY); n != nil {
+		t.Fatalf("NodeAt outside the tree = %v, want nil", n.ID)
+	}
+}
