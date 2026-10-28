@@ -21,6 +21,16 @@
     "tags": ["color", "css", "design", "utility"]
   },
   {
+    "name": "desktop-launcher-linux",
+    "displayName": "Desktop Launcher (Linux)",
+    "author": "SimonOcampo1",
+    "description": "Add ttt to your desktop's app launcher, opening in the terminal you installed it from",
+    "repo": "https://github.com/SimonOcampo1/ttt-desktop-launcher",
+    "path": "desktop-launcher-linux",
+    "version": "0.1.0",
+    "tags": ["desktop", "launcher", "linux", "integration"]
+  },
+  {
     "name": "docker-manager",
     "featured": true,
     "displayName": "Docker Manager",
