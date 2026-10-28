@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -286,6 +287,7 @@ func TestPlatformArchVersionExposed(t *testing.T) {
 		platform = ttt.platform()
 		arch = ttt.arch()
 		version = ttt.version()
+		exe = ttt.executable_path()
 	`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -299,5 +301,8 @@ func TestPlatformArchVersionExposed(t *testing.T) {
 	}
 	if got := p.State.GetGlobal("version").String(); got != "1.2.3" {
 		t.Errorf("expected version %q, got %q", "1.2.3", got)
+	}
+	if want, _ := os.Executable(); p.State.GetGlobal("exe").String() != want {
+		t.Errorf("expected executable_path %q, got %q", want, p.State.GetGlobal("exe").String())
 	}
 }

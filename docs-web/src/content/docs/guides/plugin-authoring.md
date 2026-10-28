@@ -866,15 +866,16 @@ local ok, err = fs.write(state_file, json.encode(state))
 
 Note: the plugin directory is a git clone that `Plugins: Update` pulls into, and it is deleted on uninstall — keep only regenerable state there.
 
-### `ttt.platform()` / `ttt.arch()` / `ttt.version()`
+### `ttt.platform()` / `ttt.arch()` / `ttt.version()` / `ttt.executable_path()`
 
-Return the host OS, CPU architecture, and running ttt version. No permission required.
+Return the host OS, CPU architecture, running ttt version, and the absolute path of the running ttt binary. No permission required.
 
 | Function          | Returns                                                                 |
 |-------------------|--------------------------------------------------------------------------|
 | `ttt.platform()`  | Go `GOOS` value: `"linux"`, `"darwin"`, or `"windows"`.                 |
 | `ttt.arch()`      | Go `GOARCH` value, e.g. `"amd64"`, `"arm64"`.                           |
 | `ttt.version()`   | ttt's version string, e.g. `"1.2.3"` (`"dev"` for unreleased builds).   |
+| `ttt.executable_path()` | Absolute path of the running binary, or `nil, err`. On Linux symlinks are already resolved, so a package-manager symlink yields its versioned target. |
 
 ```lua
 local ttt = require("ttt")
