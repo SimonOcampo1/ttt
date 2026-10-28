@@ -965,6 +965,8 @@ Create the debounced function once (at load time, or stored on your state), not 
 
 Register a function that runs once when the plugin is installed (from the Plugins panel or **Plugins: Install from URL**). Use this for one-time setup like writing default settings. No permission required to register the hook; whatever the callback does is still permission-checked.
 
+If the callback raises an error, the install fails: the plugin is not loaded, and a fresh install is removed again. When the hook runs on re-approval of an already installed plugin, its previous approval is kept, so the next startup asks again and reruns the hook.
+
 ```lua
 local ttt = require("ttt")
 local settings = require("ttt.settings")
@@ -977,6 +979,8 @@ end)
 ### `ttt.on_uninstall(callback)`
 
 Register a cleanup function that runs when the plugin is uninstalled. Use this to remove settings, files, or other state the plugin created during its lifetime. No permission required. Tabs, drawers, panels, status items, diagnostics and decorations are closed or cleared after the callback returns, so there's no need to clean those up here.
+
+If the callback raises an error, the plugin stays installed and the user is asked whether to remove it anyway. Raise an error when cleanup did not finish, so files the plugin created outside its directory are not orphaned silently.
 
 ```lua
 local ttt = require("ttt")

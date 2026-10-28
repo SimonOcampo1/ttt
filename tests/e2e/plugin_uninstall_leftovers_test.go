@@ -23,6 +23,11 @@ const leftoverProbeInit = `
 
 func loadLeftoverProbe(h *testHarness) *plugin.Manager {
 	h.t.Helper()
+	return loadProbe(h, leftoverProbeInit)
+}
+
+func loadProbe(h *testHarness, init string) *plugin.Manager {
+	h.t.Helper()
 	cfg := filepath.Join(h.dir, "config")
 	dir := filepath.Join(cfg, "plugins", "probe")
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -30,7 +35,7 @@ func loadLeftoverProbe(h *testHarness) *plugin.Manager {
 	}
 	files := map[string]string{
 		"plugin.ttt.json": `{"name": "probe", "version": "1.0.0", "entry": "init.lua", "permissions": {"commands": true, "panel.editor": true}}`,
-		"init.lua":        leftoverProbeInit,
+		"init.lua":        init,
 	}
 	for name, content := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
@@ -56,17 +61,22 @@ func (h *testHarness) confirmUninstall(name string) {
 	h.t.Helper()
 	h.app.PluginUninstallByName(name)
 	h.redraw()
+	h.clickDialogButton("Uninstall")
+}
+
+func (h *testHarness) clickDialogButton(label string) {
+	h.t.Helper()
 	for y := 0; y < 24; y++ {
 		row := h.screenRow(y)
 		if strings.Contains(row, "Cancel") {
-			if x := displayColumnOf(row, "Uninstall"); x >= 0 {
+			if x := displayColumnOf(row, label); x >= 0 {
 				h.click(x+1, y)
 				h.redraw()
 				return
 			}
 		}
 	}
-	h.t.Fatal("no Uninstall button on screen")
+	h.t.Fatalf("no %s button on screen", label)
 }
 
 func TestPluginUninstallRemovesItsStatusItems(t *testing.T) {
@@ -115,4 +125,24 @@ func TestPluginReloadDropsTheOldInstancesStatusItems(t *testing.T) {
 
 	h.exec("probe.mark")
 	h.assertContains("PROBESTATUS")
+}
+
+func TestPluginUninstallAsksBeforeRemovingAPluginWhoseCleanupFailed(t *testing.T) {
+	h := newTestHarness(t, 80, 24)
+	defer h.stop()
+	m := loadProbe(h, `require("ttt").on_uninstall(function() error("launcher is read-only") end)`)
+
+	h.confirmUninstall("probe")
+
+	h.assertContains("Uninstall Failed")
+	h.assertContains("launcher is read-only")
+	if m.FindPlugin("probe") == nil {
+		t.Fatal("plugin removed although its cleanup failed")
+	}
+
+	h.clickDialogButton("Remove Anyway")
+
+	if m.FindPlugin("probe") != nil {
+		t.Fatal("Remove Anyway left the plugin installed")
+	}
 }
