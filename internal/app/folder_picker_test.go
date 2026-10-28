@@ -111,10 +111,10 @@ func TestPlaceNodesKeepsPlacesAndFavorites(t *testing.T) {
 	}
 
 	gotLabels, gotIDs := nodeFields(placeNodes([]favoriteDir{{path: "~/repos/ttt", abs: "/home/u/repos/ttt"}}, places))
-	if !slices.Equal(gotLabels, []string{"Home", "Documents", "Favorites", "ttt"}) {
+	if !slices.Equal(gotLabels, []string{"Favorites", "ttt", "", "Home", "Documents"}) {
 		t.Errorf("labels = %v", gotLabels)
 	}
-	if !slices.Equal(gotIDs, []string{"/home/u", "/home/u/Documents", "", "/home/u/repos/ttt"}) {
-		t.Errorf("ids = %v, the heading must have no ID", gotIDs)
+	if !slices.Equal(gotIDs, []string{"", "/home/u/repos/ttt", "", "/home/u", "/home/u/Documents"}) {
+		t.Errorf("ids = %v, headings must have no ID", gotIDs)
 	}
 }

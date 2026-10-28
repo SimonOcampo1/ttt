@@ -19,6 +19,8 @@ type TreeNode struct {
 	Children       []*TreeNode `json:"children,omitempty"`
 	Actions        []Action    `json:"actions,omitempty"`
 	Muted          bool        `json:"-"`
+	// Heading rows are never selected or activated; keys skip over them.
+	Heading bool `json:"-"`
 	// LabelStyle overrides the label color; Muted and selection take precedence.
 	LabelStyle   term.Style `json:"-"`
 	Expandable   bool       `json:"-"`
@@ -105,6 +107,7 @@ func NewTreeWidget(cfg TreeConfig) *TreeWidget {
 	}
 	t := &TreeWidget{Config: cfg}
 	t.flatten()
+	t.skipHeadings(true)
 	return t
 }
 
@@ -317,6 +320,23 @@ func (t *TreeWidget) clampSelected() {
 	}
 	if t.selected < 0 {
 		t.selected = 0
+	}
+	t.skipHeadings(true)
+}
+
+func (t *TreeWidget) skipHeadings(forward bool) {
+	for _, dir := range []bool{forward, !forward} {
+		for i := t.selected; i >= 0 && i < len(t.flatList); {
+			if !t.flatList[i].Heading {
+				t.selected = i
+				return
+			}
+			if dir {
+				i++
+			} else {
+				i--
+			}
+		}
 	}
 }
 
@@ -633,6 +653,9 @@ func (t *TreeWidget) HandleEvent(ev tcell.Event) EventResult {
 	default:
 		return EventIgnored
 	}
+	if t.selected != prev {
+		t.skipHeadings(t.selected > prev)
+	}
 	reselected := t.activated && t.Config.ReselectOnActivate && t.Selected() != nil
 	if (t.selected != prev || reselected) && t.Config.OnSelect != nil {
 		t.Config.OnSelect(t.Selected())
@@ -705,6 +728,9 @@ func (t *TreeWidget) handleMouse(ev *tcell.EventMouse) EventResult {
 	idx := t.scrollTop + (my - t.contentY)
 	if idx < 0 || idx >= len(t.flatList) {
 		return EventIgnored
+	}
+	if t.flatList[idx].Heading {
+		return EventConsumed
 	}
 
 	if btn&tcell.Button2 != 0 {
