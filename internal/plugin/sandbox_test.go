@@ -287,7 +287,7 @@ func TestPlatformArchVersionExposed(t *testing.T) {
 		platform = ttt.platform()
 		arch = ttt.arch()
 		version = ttt.version()
-		exe = ttt.executable_path()
+		exe, exe_err = ttt.executable_path()
 	`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -302,7 +302,11 @@ func TestPlatformArchVersionExposed(t *testing.T) {
 	if got := p.State.GetGlobal("version").String(); got != "1.2.3" {
 		t.Errorf("expected version %q, got %q", "1.2.3", got)
 	}
-	if want, _ := os.Executable(); p.State.GetGlobal("exe").String() != want {
-		t.Errorf("expected executable_path %q, got %q", want, p.State.GetGlobal("exe").String())
+	if want, err := os.Executable(); err != nil {
+		if p.State.GetGlobal("exe") != lua.LNil || p.State.GetGlobal("exe_err").String() != err.Error() {
+			t.Errorf("executable_path = %v, %v; want nil, %q", p.State.GetGlobal("exe"), p.State.GetGlobal("exe_err"), err)
+		}
+	} else if got := p.State.GetGlobal("exe").String(); got != want {
+		t.Errorf("expected executable_path %q, got %q", want, got)
 	}
 }
