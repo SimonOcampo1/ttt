@@ -96,7 +96,7 @@ func TestFilterEntriesKeepsTheWayOut(t *testing.T) {
 	}
 }
 
-func TestPlaceNodesKeepsHomeAndFavorites(t *testing.T) {
+func TestPlaceNodesKeepsPlacesAndFavorites(t *testing.T) {
 	places := []workspace.Place{{Name: "Home", Path: "/home/u"}, {Name: "Documents", Path: "/home/u/Documents"}}
 	nodeFields := func(nodes []*widgets.TreeNode) (labels, ids []string) {
 		for _, n := range nodes {
@@ -111,10 +111,10 @@ func TestPlaceNodesKeepsHomeAndFavorites(t *testing.T) {
 	}
 
 	gotLabels, gotIDs := nodeFields(placeNodes([]favoriteDir{{path: "~/repos/ttt", abs: "/home/u/repos/ttt"}}, places))
-	if !slices.Equal(gotLabels, []string{"Home", "Favorites", "ttt"}) {
+	if !slices.Equal(gotLabels, []string{"Home", "Documents", "Favorites", "ttt"}) {
 		t.Errorf("labels = %v", gotLabels)
 	}
-	if !slices.Equal(gotIDs, []string{"/home/u", "", "/home/u/repos/ttt"}) {
+	if !slices.Equal(gotIDs, []string{"/home/u", "/home/u/Documents", "", "/home/u/repos/ttt"}) {
 		t.Errorf("ids = %v, the heading must have no ID", gotIDs)
 	}
 }

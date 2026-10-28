@@ -243,15 +243,12 @@ func folderPickerNodes(entries []folderPickerEntry) []*widgets.TreeNode {
 	return nodes
 }
 
-// placeNodes lists Home and then the favorites under a heading; the other
-// places only show while there are no favorites, so the column stays short.
+// placeNodes lists every place and then the favorites under a heading.
 // Headings have no ID, so activating one does nothing.
 func placeNodes(favs []favoriteDir, places []workspace.Place) []*widgets.TreeNode {
 	var nodes []*widgets.TreeNode
 	for _, p := range places {
-		if len(favs) == 0 || p.Name == "Home" {
-			nodes = append(nodes, &widgets.TreeNode{ID: p.Path, Label: p.Name})
-		}
+		nodes = append(nodes, &widgets.TreeNode{ID: p.Path, Label: p.Name})
 	}
 	if len(favs) > 0 {
 		nodes = append(nodes, &widgets.TreeNode{Label: "Favorites", Muted: true})
