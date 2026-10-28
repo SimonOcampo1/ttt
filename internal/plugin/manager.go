@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -250,8 +251,7 @@ func (m *Manager) ApproveAndLoad(p *Plugin) error {
 
 	if err := p.CallOnInstall(); err != nil {
 		p.Destroy()
-		m.revertApproval(p, prev)
-		return fmt.Errorf("on_install: %w", err)
+		return errors.Join(fmt.Errorf("on_install: %w", err), m.revertApproval(p, prev))
 	}
 
 	m.plugins = append(m.plugins, p)
@@ -262,7 +262,7 @@ func (m *Manager) ApproveAndLoad(p *Plugin) error {
 // revertApproval undoes ApproveAndLoad's registry write so the next startup
 // asks again and reruns on_install, instead of loading a plugin whose install
 // never completed.
-func (m *Manager) revertApproval(p *Plugin, prev *RegistryEntry) {
+func (m *Manager) revertApproval(p *Plugin, prev *RegistryEntry) error {
 	if prev != nil {
 		if entry := m.registry.Find(p.Manifest.Name); entry != nil {
 			*entry = *prev
@@ -274,10 +274,18 @@ func (m *Manager) revertApproval(p *Plugin, prev *RegistryEntry) {
 				slog.Error("remove plugin directory", "error", err)
 			}
 		}
+		// on_install may have written storage before failing; a later install
+		// under the same name must not inherit it.
+		if path, err := storagePath(m.storageDir, p.Manifest.Name); err == nil {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				slog.Error("remove plugin storage", "error", err)
+			}
+		}
 	}
 	if err := m.registry.Save(); err != nil {
-		slog.Error("save plugin registry", "error", err)
+		return fmt.Errorf("undo approval: %w", err)
 	}
+	return nil
 }
 
 func (m *Manager) RegisterDebugPlugin(p *Plugin) {

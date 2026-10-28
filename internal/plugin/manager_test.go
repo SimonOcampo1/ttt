@@ -1372,7 +1372,15 @@ func TestSetEnabledReportsAFailedPermissionSave(t *testing.T) {
 func TestFailedOnInstallUndoesAFreshInstall(t *testing.T) {
 	pluginsDir := t.TempDir()
 	dir := writePluginDir(t, pluginsDir, "broken")
-	if err := os.WriteFile(filepath.Join(dir, "main.ttt.lua"), []byte(`require("ttt").on_install(function() error("no write access") end)`), 0644); err != nil {
+	manifest := `{"name":"broken","version":"1.0.0","entry":"main.ttt.lua","permissions":{"storage":true}}`
+	if err := os.WriteFile(filepath.Join(dir, "plugin.ttt.json"), []byte(manifest), 0644); err != nil {
+		t.Fatal(err)
+	}
+	entry := `require("ttt").on_install(function()
+		require("ttt.storage").set("half", "done")
+		error("no write access")
+	end)`
+	if err := os.WriteFile(filepath.Join(dir, "main.ttt.lua"), []byte(entry), 0644); err != nil {
 		t.Fatal(err)
 	}
 	m := NewManager(pluginsDir, filepath.Join(t.TempDir(), "registry.json"))
@@ -1393,6 +1401,31 @@ func TestFailedOnInstallUndoesAFreshInstall(t *testing.T) {
 	}
 	if _, err := os.Stat(dir); !os.IsNotExist(err) {
 		t.Errorf("plugin directory left behind: %v", err)
+	}
+	if path, _ := storagePath(m.StorageDir(), "broken"); path != "" {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("storage written by the failed on_install left behind: %v", err)
+		}
+	}
+}
+
+func TestRevertApprovalReportsAFailedSave(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	pluginsDir := t.TempDir()
+	dir := writePluginDir(t, pluginsDir, "p")
+	regDir := t.TempDir()
+	m := NewManager(pluginsDir, filepath.Join(regDir, "registry.json"))
+	m.LoadAll()
+	if err := os.Chmod(regDir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(regDir, 0o700) })
+
+	err := m.revertApproval(&Plugin{Name: "p", Dir: dir, Manifest: Manifest{Name: "p"}}, nil)
+	if err == nil || !strings.Contains(err.Error(), "undo approval") {
+		t.Fatalf("err = %v, want the failed registry save", err)
 	}
 }
 
