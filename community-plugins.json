@@ -28,6 +28,7 @@
     "repo": "https://github.com/SimonOcampo1/ttt-desktop-launcher",
     "path": "desktop-launcher-linux",
     "version": "0.1.0",
+    "featured": true,
     "tags": ["desktop", "launcher", "linux", "integration"]
   },
   {
